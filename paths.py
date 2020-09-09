@@ -184,47 +184,53 @@ for row in board_positions:
 	r += 1
 
 ## merge doors within a room to a single connection
-study_position = None
-kitchen_position = None
-lounge_positions = None
-conservatory_position = None
-
-
 for door_item in doors.items():
 	connections = []
 	door = Door(door_item[0], connections)
 
 	for door_pos in door_item[1]:
-		# get the existing space
+		## get the existing space
 		space = board_positions[door_pos[0] - 1][door_pos[1] - 1] #1 based
-		print(f"[{door_pos[0]} - 1][{door_pos[1]} - 1]")
+		#print(f"[{door_pos[0]} - 1][{door_pos[1]} - 1]")
 
-		# copy the spaces' connections into the door's connections
+		## copy the spaces' connections into the door's connections
 		door.connections.extend(space.connections)
 
-		# replace the space with the door
+		## replace the space with the door
 		board_positions[door_pos[0] - 1][door_pos[1] - 1] = door  #1 based
+
+## find the rooms with shortcuts
+door_positions = set(filter(lambda pos: isinstance(pos, Door) is True, chain.from_iterable(board_positions)))
+study_door = next(door for door in door_positions if door.room == Room.STUDY)
+kitchen_door = next(door for door in door_positions if door.room == Room.KITCHEN)
+lounge_door = next(door for door in door_positions if door.room == Room.LOUNGE)
+conservatory_door = next(door for door in door_positions if door.room == Room.CONSERVATORY)
+
+## add the shortcuts
+study_door.connections.append(kitchen_door)
+kitchen_door.connections.append(study_door)
+lounge_door.connections.append(conservatory_door)
+conservatory_door.connections.append(lounge_door)
 
 if True:
 	for row in board_positions:	
 		print(row)
 
+	def pos_to_str(p: Position):
+		if isinstance(p, Space):
+			return str(p.pos_str())
+		elif isinstance(p, Door):
+			return str(p.room)
+		return str(p)
+
 	for row in board_positions:	
 		for cell in row:
 			if cell is not None:
-				print(str(cell) + ': ' + str(list(map(lambda conn: conn.pos_str(), cell.connections)))) 
+				print(str(cell) + ': ' + str(list(map(pos_to_str, cell.connections)))) 
 
-door_positions = set(filter(lambda pos: isinstance(pos, Door) is True, chain.from_iterable(board_positions)))
-study_positions = set(filter(lambda door: door.room == Room.STUDY, door_positions))
-kitchen_positions = set(filter(lambda door: door.room == Room.KITCHEN, door_positions))
-lounge_positions = set(filter(lambda door: door.room == Room.LOUNGE, door_positions))
-conservatory_positions = set(filter(lambda door: door.room == Room.CONSERVATORY, door_positions))
 
-print(door_positions)
-print(study_positions)
-print(kitchen_positions)
-print(lounge_positions)
-print(conservatory_positions)
+
+
 
 
 
