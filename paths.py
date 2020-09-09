@@ -1,6 +1,7 @@
 from __future__ import annotations
 from definitions import Room
 from typing import List, Tuple
+from itertools import chain
 
 board_spaces = [
 	[0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0], #1
@@ -17,7 +18,7 @@ board_spaces = [
 	[1, 2, 1, 2, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0], #12
 	[0, 3, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 2, 3, 0, 0, 0, 0, 0, 0, 0], #13
 	[0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0], #14
-	[0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0], #16
+	[0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0], #15
 	[0, 0, 0, 0, 0, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0], #16
 	[0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 0], #17
 	[0, 1, 1, 1, 1, 1, 1, 1, 0, 3, 0, 0, 0, 0, 3, 0, 1, 1, 1, 2, 1, 1, 1, 1], #18
@@ -27,40 +28,20 @@ board_spaces = [
 	[0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0], #22
 	[0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0], #23
 	[0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0], #24
-	[0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0], #25
+	[0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]  #25
 	#1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 
 ]
 
-#doors = [
-#	(Room.CONSERVATORY, 5, 20),	
-#	(Room.BALLROOM, 9, 20),
-#	(Room.BALLROOM, 10, 18),
-#	(Room.BALLROOM, 15, 18),
-#	(Room.BALLROOM, 15, 20),
-#	(Room.LIBRARY, 4, 11),
-#	(Room.LIBRARY, 7, 8),
-#	(Room.BILLARD_ROOM, 6, 16),
-#	(Room.BILLARD_ROOM, 2, 13),
-#	(Room.STUDY, 7, 4),
-#	(Room.HALL, 10, 5),
-#	(Room.HALL, 12, 7),
-#	(Room.HALL, 13, 7),
-#	(Room.LOUNGE, 18, 6),
-#	(Room.DINING_ROOM, 18, 10),
-#	(Room.DINING_ROOM, 17, 13),
-#	(Room.KITCHEN, 20, 19),
-#]
-
 doors = dict()
-doors[Room.CONSERVATORY] = [(5, 20)]
-doors[Room.BALLROOM] = [(9, 20), (10, 18), (15, 18), (15, 20)]
-doors[Room.LIBRARY] = [(4, 11), (7, 8)]
-doors[Room.BILLARD_ROOM] = [(6, 16), (2, 13)]
-doors[Room.STUDY] = [(7, 4)]
-doors[Room.HALL] = [(10, 5), (12, 7), (13, 7)]
-doors[Room.LOUNGE] = [(18, 6)]
-doors[Room.DINING_ROOM] = [(18, 10), (17, 13)]
-doors[Room.KITCHEN] = [(20, 19)]
+doors[Room.CONSERVATORY] = [(20, 5)]
+doors[Room.BALLROOM] = [(20, 9), (18, 10), (18, 15), (20, 16)]
+doors[Room.LIBRARY] = [(11, 4), (9, 7)]
+doors[Room.BILLARD_ROOM] = [(16, 6), (13, 2)]
+doors[Room.STUDY] = [(4, 7)]
+doors[Room.HALL] = [(5, 10), (7, 12), (7, 13)]
+doors[Room.LOUNGE] = [(6, 18)]
+doors[Room.DINING_ROOM] = [(10, 18), (13, 17)]
+doors[Room.KITCHEN] = [(19, 20)]
 
 shortcuts = [
 	(Room.STUDY, Room.KITCHEN),
@@ -82,20 +63,23 @@ class Door(Position):
 		super().__init__(connections)
 		self.room = room
 
-class Space(Position):
-	x: int
-	y: int
+	def __repr__(self):
+		return str(self.room) + "; " + str(self.connections)
 
-	def __init__(self, x, y, connections=[]):
+class Space(Position):
+	row: int
+	col: int
+
+	def __init__(self, row, col, connections=[]):
 		super().__init__(connections)
-		self.x = x
-		self.y = y		
+		self.row = row
+		self.col = col	
 
 	def __repr__(self):
 		return self.pos_str()
 
 	def pos_str(self):
-		return "(" + str(self.x + 1) + "," + str(self.y + 1) + ")"
+		return "(" + str(self.row + 1) + "," + str(self.col + 1) + ")"
 
 class RoomPath:
 
@@ -181,7 +165,7 @@ for row in board_spaces:
 	c = 0
 	for cell in row:
 		if cell > 0:
-			board_positions[c][r] = Space(r, c)
+			board_positions[r][c] = Space(r, c)
 		c += 1
 
 	r += 1
@@ -194,7 +178,7 @@ for row in board_positions:
 		if cell is not None:
 			connection_coors = Board.find_connections(r, c)
 			connections = list(map(lambda coors: board_positions[coors[0]][coors[1]], connection_coors))
-			board_positions[c][r].connections = connections
+			board_positions[r][c].connections = connections
 		c += 1
 
 	r += 1
@@ -203,37 +187,23 @@ for row in board_positions:
 study_position = None
 kitchen_position = None
 lounge_positions = None
-conservatory_positions = None
+conservatory_position = None
 
 
-#for door_item in doors.items():
-#	connections = []
-#	door = Door(door_item[0], connections)
+for door_item in doors.items():
+	connections = []
+	door = Door(door_item[0], connections)
 
-#	for door_pos in door_item[1]:
-#		# get the existing space
-#		space = board_positions[door_pos[0] - 1][door_pos[1] - 1] #1 based
-#		print(f"[{door_pos[0]} - 1][{door_pos[1]} - 1]")
-#		# copy the spaces' connections into the door's connections
-#		door.connections.extend(space.connections)
+	for door_pos in door_item[1]:
+		# get the existing space
+		space = board_positions[door_pos[0] - 1][door_pos[1] - 1] #1 based
+		print(f"[{door_pos[0]} - 1][{door_pos[1]} - 1]")
 
-#		# replace the space with the door
-#		board_positions[door_pos[0] - 1][door_pos[1] - 1] = door  #1 based
+		# copy the spaces' connections into the door's connections
+		door.connections.extend(space.connections)
 
-
-#door_positions = list(filter(lambda pos: isinstance(pos, Door), board_positions))
-#study_positions = list(filter(lambda door: door.room == Room.STUDY, door_positions))
-#kitchen_positions = list(filter(lambda door: door.room == Room.KITCHEN, door_positions))
-#lounge_positions = list(filter(lambda door: door.room == Room.LOUNGE, door_positions))
-#conservatory_positions = list(filter(lambda door: door.room == Room.CONSERVATORY, door_positions))
-
-#assert len(door_positions) == 9
-#assert len(study_positions) == 1
-#assert len(kitchen_positions) == 1
-#assert len(lounge_positions) == 1
-#assert len(conservatory_positions) == 1
-
-
+		# replace the space with the door
+		board_positions[door_pos[0] - 1][door_pos[1] - 1] = door  #1 based
 
 if True:
 	for row in board_positions:	
@@ -242,4 +212,21 @@ if True:
 	for row in board_positions:	
 		for cell in row:
 			if cell is not None:
-				print(str(cell) + ': ' + str(list(map(lambda conn: conn.pos_str(), cell.connections))))
+				print(str(cell) + ': ' + str(list(map(lambda conn: conn.pos_str(), cell.connections)))) 
+
+door_positions = set(filter(lambda pos: isinstance(pos, Door) is True, chain.from_iterable(board_positions)))
+study_positions = set(filter(lambda door: door.room == Room.STUDY, door_positions))
+kitchen_positions = set(filter(lambda door: door.room == Room.KITCHEN, door_positions))
+lounge_positions = set(filter(lambda door: door.room == Room.LOUNGE, door_positions))
+conservatory_positions = set(filter(lambda door: door.room == Room.CONSERVATORY, door_positions))
+
+print(door_positions)
+print(study_positions)
+print(kitchen_positions)
+print(lounge_positions)
+print(conservatory_positions)
+
+
+
+
+
