@@ -1,7 +1,8 @@
 from __future__ import annotations
-from definitions import Room
+from definitions import *
 from typing import List, Tuple
 from itertools import chain
+from astar import a_star_search
 
 board_spaces = [
 	[0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0], #1
@@ -15,7 +16,7 @@ board_spaces = [
 	[0, 0, 0, 0, 0, 0, 3, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 2, 1, 1, 1, 1, 1, 0], #9
 	[0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 3, 0, 0, 0, 0, 0, 0], #10
 	[0, 0, 0, 3, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0], #11
-	[1, 2, 1, 2, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0], #12
+	[0, 2, 1, 2, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0], #12
 	[0, 3, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 2, 3, 0, 0, 0, 0, 0, 0, 0], #13
 	[0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0], #14
 	[0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0], #15
@@ -31,7 +32,7 @@ board_spaces = [
 	[0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]  #25
 	#1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 
 ]
-
+#[(15,7), (15,8), (16,8), (17,8), (17,7), (18,7), (18,6), (18,5)]
 doors = dict()
 doors[Room.CONSERVATORY] = [(20, 5)]
 doors[Room.BALLROOM] = [(20, 9), (18, 10), (18, 15), (20, 16)]
@@ -42,44 +43,6 @@ doors[Room.HALL] = [(5, 10), (7, 12), (7, 13)]
 doors[Room.LOUNGE] = [(6, 18)]
 doors[Room.DINING_ROOM] = [(10, 18), (13, 17)]
 doors[Room.KITCHEN] = [(19, 20)]
-
-shortcuts = [
-	(Room.STUDY, Room.KITCHEN),
-	(Room.KITCHEN, Room.STUDY),
-	(Room.LOUNGE, Room.CONSERVATORY),
-	(Room.CONSERVATORY, Room.LOUNGE)
-]
-
-class Position:
-	connections: List[Position]
-
-	def __init__(self, connections=[]):
-		self.connections = connections
-
-class Door(Position):
-	room: Room
-
-	def __init__(self, room: Room, connections: List[Position]):
-		super().__init__(connections)
-		self.room = room
-
-	def __repr__(self):
-		return str(self.room) + "; " + str(self.connections)
-
-class Space(Position):
-	row: int
-	col: int
-
-	def __init__(self, row, col, connections=[]):
-		super().__init__(connections)
-		self.row = row
-		self.col = col	
-
-	def __repr__(self):
-		return self.pos_str()
-
-	def pos_str(self):
-		return "(" + str(self.row + 1) + "," + str(self.col + 1) + ")"
 
 class RoomPath:
 
@@ -129,30 +92,30 @@ class Board:
 
 		return best_room_path
 
-	def find_connections(row: int, col: int) -> List[Tuple[int, int]]:
-		if board_spaces[row][col] == 0:
-			raise Exception(f"Position (${row},${col}) is not valid")
+def find_connections(row: int, col: int) -> List[Tuple[int, int]]:
+	if board_spaces[row][col] == 0:
+		raise Exception(f"Position (${row},${col}) is not valid")
 
-		possibilities = [
-			[row - 1, col],
-			[row, col - 1],
-			[row, col + 1],
-			[row + 1, col],
-		]
+	possibilities = [
+		[row - 1, col],
+		[row, col - 1],
+		[row, col + 1],
+		[row + 1, col]
+	]
 
-		## remove items that are out of range
-		possibilities = list(filter(lambda x: x[0] >=0 and x[1] >=0 and x[0] < Board.ROW_MAX and x[1] < Board.COL_MAX, possibilities))
+	## remove items that are out of range
+	possibilities = list(filter(lambda x: x[0] >=0 and x[1] >=0 and x[0] < Board.ROW_MAX and x[1] < Board.COL_MAX, possibilities))
 
-		## remove spaces that aren't valid
-		if board_spaces[row][col] == 3:
-			# only the space with value 2 is valid
-			return list(filter(lambda x: board_spaces[x[0]][x[1]] == 2, possibilities))
-		elif board_spaces[row][col] == 2:
-			# only the space with value 3 is valid
-			return list(filter(lambda x: board_spaces[x[0]][x[1]] == 3, possibilities))
+	## remove spaces that aren't valid
+	if board_spaces[row][col] == 3:
+		# only the space with value 2 is valid
+		return list(filter(lambda x: board_spaces[x[0]][x[1]] == 2, possibilities))
+	#elif board_spaces[row][col] == 2:
+		# only the space with value 3 is valid
+		#return list(filter(lambda x: board_spaces[x[0]][x[1]] == 3, possibilities))
 
-		## space values 1 and 2 are valid
-		return list(filter(lambda x: board_spaces[x[0]][x[1]] > 0, possibilities))
+	## space values 1 and 2 are valid
+	return list(filter(lambda x: board_spaces[x[0]][x[1]] > 0, possibilities))
 
 ## create position objects for each
 board_positions: List[List[Position]] = []
@@ -176,7 +139,7 @@ for row in board_positions:
 	c = 0
 	for cell in row:
 		if cell is not None:
-			connection_coors = Board.find_connections(r, c)
+			connection_coors = find_connections(r, c)
 			connections = list(map(lambda coors: board_positions[coors[0]][coors[1]], connection_coors))
 			board_positions[r][c].connections = connections
 		c += 1
@@ -227,12 +190,26 @@ if True:
 		for cell in row:
 			if cell is not None:
 				print(str(cell) + ': ' + str(list(map(pos_to_str, cell.connections)))) 
+	
+
+
+start = Board.BOARD_POSITIONS[14][6] #15,7  
+goal = Board.BOARD_POSITIONS[17][1] #18,5
+
+assert isinstance(start, Space) is True
+assert isinstance(goal, Space) is True
+
+(came_from, cost_so_far) = a_star_search(start, goal)
+
+
+#for item in came_from.items():
+#	print("Space: " + str(item[0]))
+#	print("Opt Space: " + str(item[1]))
 
 
 
 
-
-
-
+print(came_from)
+print(cost_so_far)
 
 
