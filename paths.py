@@ -44,18 +44,15 @@ doors[Room.LOUNGE] = [(6, 18)]
 doors[Room.DINING_ROOM] = [(10, 18), (13, 17)]
 doors[Room.KITCHEN] = [(19, 20)]
 
-class RoomPath:
-
-	room: Room
+class Path:
 	distance: int
-	path: List[Tuple[int, int]]
+	path: List[Position]
 
-	def __init__(self, room: Room, distance: int, path: List[Tuple[int, int]]):
-		self.distance = distance
-		self.room = room
+	def __init__(self, path: List[Space]):
+		self.distance = len(path)		
 		self.path = path
 
-	def compare(self, other) -> int:
+	def compare_dist(self, other) -> int:
 		if self.distance > other.distance:
 			return 1
 
@@ -64,33 +61,50 @@ class RoomPath:
 
 		return -1
 
+class RoomPath(Path):
+	room: Room
+	
+	def __init__(self, room: Room, path: List[Space]):
+		super().__init__(path)
+		self.room = room
+
 class Board:
 
 	ROW_MAX = len(board_spaces)
 	COL_MAX = len(board_spaces[0])
 
 	BOARD_POSITIONS: List[List[Position]] = None
+	ROOM_POSITIONS: Dict[Room, RoomPosition] = None
 
-	def path_to_room(x: int, y: int, room: Room) -> RoomPath:
-		pass
+	def room_paths_from_position(row: int, col: int, rooms: List[Room]) -> List[RoomPath]:
+		start = Board.BOARD_POSITIONS[row][col]
 
-	def path_to_rooms(x: int, y: int, rooms: List[Room]) -> List[RoomPath]:
-		paths = []
+		paths: List[RoomPath] = []
 		for room in rooms:
-			paths.append(path_to_room(x, y, room))
+			goal = Board.ROOM_POSITIONS[room]
+			path = Board.find_path(start, goal)
+			room_path = RoomPath(room, path.path)
+			paths.append(room_path)
 
 		return paths
 
-	def closest_room(x: int, y: int, rooms: List[Room]) -> RoomPath:
-		best_room_path = Board.path_to_room(x, y, rooms[0])
-		rooms.pop(0)
+	def room_paths_from_room(start: Room, rooms: List[Room]) -> RoomPath:
+		print("Find path from" + str(start) + " to " + str(rooms))
+		return list(map(lambda goal: Board.path_from_room_to_room(start, goal), rooms));
 
-		for room in rooms:
-			room_path = Board.distance_to_room(x, y, room)
-			if best_room_path.compare(room_path) == 1:
-				best_room_path = room_path				
+	def path_from_room_to_room(start: Room, goal: Room) -> RoomPath:
+		start = Board.ROOM_POSITIONS[start]
+		goal = Board.ROOM_POSITIONS[goal]
 
-		return best_room_path
+		path = find_path(start, goal)
+		room_path = RoomPath(goal, path.path)
+		return room_path
+
+	def find_path(start: Position, goal: Position) -> Path:
+		shortest_path = a_star_search(start, goal)
+		shortest_path.pop(0) #remove the start Position
+
+		return Path(shortest_path)
 
 def find_connections(row: int, col: int) -> List[Tuple[int, int]]:
 	if board_spaces[row][col] == 0:
@@ -110,16 +124,21 @@ def find_connections(row: int, col: int) -> List[Tuple[int, int]]:
 	if board_spaces[row][col] == 3:
 		# only the space with value 2 is valid
 		return list(filter(lambda x: board_spaces[x[0]][x[1]] == 2, possibilities))
-	#elif board_spaces[row][col] == 2:
-		# only the space with value 3 is valid
-		#return list(filter(lambda x: board_spaces[x[0]][x[1]] == 3, possibilities))
+	elif board_spaces[row][col] == 2:
+		## all spaces are valid
+		return list(filter(lambda x: board_spaces[x[0]][x[1]] > 0, possibilities))
 
-	## space values 1 and 2 are valid
-	return list(filter(lambda x: board_spaces[x[0]][x[1]] > 0, possibilities))
+	# board_spaces[row][col] == 1, only 1 and 2 are valid
+	return list(filter(lambda x: board_spaces[x[0]][x[1]] == 1 or board_spaces[x[0]][x[1]] == 2, possibilities))
+
+def find_room_for_door_position():
+	#not needed
+	pass
 
 ## create position objects for each
 board_positions: List[List[Position]] = []
 Board.BOARD_POSITIONS = board_positions
+Board.ROOM_POSITIONS = dict()
 
 r = 0
 for row in board_spaces:		
@@ -139,9 +158,10 @@ for row in board_positions:
 	c = 0
 	for cell in row:
 		if cell is not None:
+			space = board_positions[r][c]
 			connection_coors = find_connections(r, c)
 			connections = list(map(lambda coors: board_positions[coors[0]][coors[1]], connection_coors))
-			board_positions[r][c].connections = connections
+			space.connections = connections
 		c += 1
 
 	r += 1
@@ -149,7 +169,8 @@ for row in board_positions:
 ## merge doors within a room to a single connection
 for door_item in doors.items():
 	connections = []
-	door = Door(door_item[0], connections)
+	door = RoomPosition(door_item[0], connections)
+	Board.ROOM_POSITIONS[door.room] = door
 
 	for door_pos in door_item[1]:
 		## get the existing space
@@ -159,11 +180,16 @@ for door_item in doors.items():
 		## copy the spaces' connections into the door's connections
 		door.connections.extend(space.connections)
 
-		## replace the space with the door
+		## change the space reference to the door reference in all connection's connections
+		for space_conn in space.connections:
+			space_conn.connections.remove(space)
+			space_conn.connections.append(door)
+
+		## replace the space with the door in the board
 		board_positions[door_pos[0] - 1][door_pos[1] - 1] = door  #1 based
 
 ## find the rooms with shortcuts
-door_positions = set(filter(lambda pos: isinstance(pos, Door) is True, chain.from_iterable(board_positions)))
+door_positions = set(filter(lambda pos: isinstance(pos, RoomPosition) is True, chain.from_iterable(board_positions)))
 study_door = next(door for door in door_positions if door.room == Room.STUDY)
 kitchen_door = next(door for door in door_positions if door.room == Room.KITCHEN)
 lounge_door = next(door for door in door_positions if door.room == Room.LOUNGE)
@@ -182,7 +208,7 @@ if True:
 	def pos_to_str(p: Position):
 		if isinstance(p, Space):
 			return str(p.pos_str())
-		elif isinstance(p, Door):
+		elif isinstance(p, RoomPosition):
 			return str(p.room)
 		return str(p)
 
@@ -190,26 +216,23 @@ if True:
 		for cell in row:
 			if cell is not None:
 				print(str(cell) + ': ' + str(list(map(pos_to_str, cell.connections)))) 
-	
+
+#start = Board.BOARD_POSITIONS[14][6] #15,7  
+#goal = Board.BOARD_POSITIONS[17][1] #18,5
+
+#assert isinstance(start, Space) is True
+#assert isinstance(goal, Space) is True
+
+#(came_from, cost_so_far) = a_star_search(start, goal)
+
+#print(came_from)
+#print(cost_so_far)
 
 
-start = Board.BOARD_POSITIONS[14][6] #15,7  
-goal = Board.BOARD_POSITIONS[17][1] #18,5
+#(1,17) -> study
 
-assert isinstance(start, Space) is True
-assert isinstance(goal, Space) is True
-
-(came_from, cost_so_far) = a_star_search(start, goal)
-
-
-#for item in came_from.items():
-#	print("Space: " + str(item[0]))
-#	print("Opt Space: " + str(item[1]))
-
-
-
-
-print(came_from)
-print(cost_so_far)
-
-
+start = Board.BOARD_POSITIONS[0][16] #(1,17)
+goal = Board.ROOM_POSITIONS[Room.STUDY]
+#goal = Board.BOARD_POSITIONS[4][6] #(5,7)
+path = a_star_search(start, goal)
+print(path)

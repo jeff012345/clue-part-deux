@@ -1,6 +1,10 @@
 from __future__ import annotations
 from enum import Enum
 from typing import List, Tuple
+import random
+
+def roll_dice() -> int:
+	return random.randint(1, 6)
 
 class Room(Enum):
 	STUDY = 1
@@ -40,7 +44,7 @@ class Position:
 	def __init__(self, connections=[]):
 		self.connections = connections
 
-class Door(Position):
+class RoomPosition(Position):
 	room: Room
 
 	def __init__(self, room: Room, connections: List[Position]):
@@ -48,7 +52,7 @@ class Door(Position):
 		self.room = room
 
 	def __repr__(self):
-		return str(self.room) + "; " + str(self.connections)
+		return str(self.room) ## + "; " + str(self.connections)
 
 class Space(Position):
 	row: int
@@ -85,3 +89,82 @@ class Space(Position):
 
 	#def __hash__(self):
 	#	return int.__hash__(self.row) + int.__hash__(self.col)
+
+class Card:
+
+	value: Enum
+	type: CardType
+
+	def __init__(self, value: Enum, type: CardType):
+		self.value = value
+		self.type = type
+
+	def __str__(self):
+		return self.value.name
+
+	def __repr__(self):
+		return self.value.name
+
+	def __eq__(self, other):
+		"""Overrides the default implementation"""
+		if isinstance(other, Card):
+			return self.type == other.type and self.value == other.value
+		return False
+
+	def __ne__(self, other):
+		"""Overrides the default implementation (unnecessary in Python 3)"""
+		x = self.__eq__(other)
+		if x is not NotImplemented:
+			return not x
+		return NotImplemented
+
+	def __hash__(self):
+		"""Overrides the default implementation"""
+		return hash(tuple(sorted(self.__dict__.items())))
+
+class Solution:
+
+	weapon: Card
+	character: Card
+	room: Card
+
+	def __init__(self, weapon: Card, character: Card, room: Card):
+		self.weapon = weapon
+		self.character = character
+		self.room = room
+
+	def is_complete(self):
+		return self.weapon is not None and self.room is not None and self.character is not None
+
+	def is_empty(self):
+		return self.weapon is None and self.room is None and self.character is None
+
+	def __repr__(self):
+		return self.character.value.name + " in the " + self.room.value.name + " with the " + self.weapon.value.name
+
+class Deck:
+
+	def make_deck() -> List[Card]:
+		return [
+			Card(Room.STUDY, CardType.ROOM),
+			Card(Room.LIBRARY, CardType.ROOM),
+			Card(Room.CONSERVATORY, CardType.ROOM),
+			Card(Room.HALL, CardType.ROOM),
+			Card(Room.KITCHEN, CardType.ROOM),
+			Card(Room.BALLROOM, CardType.ROOM),			
+			Card(Room.DINING_ROOM, CardType.ROOM),
+			Card(Room.LOUNGE, CardType.ROOM),
+			Card(Room.BILLARD_ROOM, CardType.ROOM),			
+			Card(Character.MRS_WHITE, CardType.CHARACTER),
+			Card(Character.MRS_PEACOCK, CardType.CHARACTER),
+			Card(Character.MISS_SCARLET, CardType.CHARACTER),
+			Card(Character.COLONEL_MUSTARD, CardType.CHARACTER),
+			Card(Character.MR_GREEN, CardType.CHARACTER),
+			Card(Character.PROFESSOR_PLUM, CardType.CHARACTER),
+			Card(Weapon.CANDLESTICK, CardType.WEAPON),
+			Card(Weapon.REVOLVER, CardType.WEAPON),
+			Card(Weapon.ROPE, CardType.WEAPON),
+			Card(Weapon.WRENCH, CardType.WEAPON),
+			Card(Weapon.LEAD_PIPE, CardType.WEAPON),
+			Card(Weapon.KNIFE, CardType.WEAPON),
+		]

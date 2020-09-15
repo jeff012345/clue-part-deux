@@ -1,273 +1,13 @@
 from enum import Enum
 from typing import List, Set, Dict, Tuple, Optional
 import random
-from paths import RoomPath
+from paths import RoomPath, Board
 from definitions import *
-
-class Card:
-
-	value: Enum
-	type: CardType
-
-	def __init__(self, value: Enum, type: CardType):
-		self.value = value
-		self.type = type
-
-	def __str__(self):
-		return self.value.name
-
-	def __repr__(self):
-		return self.value.name
-
-	def __eq__(self, other):
-		"""Overrides the default implementation"""
-		if isinstance(other, Card):
-			return self.type == other.type and self.value == other.value
-		return False
-
-	def __ne__(self, other):
-		"""Overrides the default implementation (unnecessary in Python 3)"""
-		x = self.__eq__(other)
-		if x is not NotImplemented:
-			return not x
-		return NotImplemented
-
-	def __hash__(self):
-		"""Overrides the default implementation"""
-		return hash(tuple(sorted(self.__dict__.items())))
-
-class Deck:
-
-	def make_deck() -> List[Card]:
-		return [
-			Card(Room.STUDY, CardType.ROOM),
-			Card(Room.LIBRARY, CardType.ROOM),
-			Card(Room.CONSERVATORY, CardType.ROOM),
-			Card(Room.HALL, CardType.ROOM),
-			Card(Room.KITCHEN, CardType.ROOM),
-			Card(Room.BALLROOM, CardType.ROOM),			
-			Card(Room.DINING_ROOM, CardType.ROOM),
-			Card(Room.LOUNGE, CardType.ROOM),
-			Card(Room.BILLARD_ROOM, CardType.ROOM),			
-			Card(Character.MRS_WHITE, CardType.CHARACTER),
-			Card(Character.MRS_PEACOCK, CardType.CHARACTER),
-			Card(Character.MISS_SCARLET, CardType.CHARACTER),
-			Card(Character.COLONEL_MUSTARD, CardType.CHARACTER),
-			Card(Character.MR_GREEN, CardType.CHARACTER),
-			Card(Character.PROFESSOR_PLUM, CardType.CHARACTER),
-			Card(Weapon.CANDLESTICK, CardType.WEAPON),
-			Card(Weapon.REVOLVER, CardType.WEAPON),
-			Card(Weapon.ROPE, CardType.WEAPON),
-			Card(Weapon.WRENCH, CardType.WEAPON),
-			Card(Weapon.LEAD_PIPE, CardType.WEAPON),
-			Card(Weapon.KNIFE, CardType.WEAPON),
-		]
-
-class Solution:
-
-	weapon: Card
-	character: Card
-	room: Card
-
-	def __init__(self, weapon: Card, character: Card, room: Card):
-		self.weapon = weapon
-		self.character = character
-		self.room = room
-
-	def is_complete(self):
-		return self.weapon is not None and self.room is not None and self.character is not None
-
-	def is_empty(self):
-		return self.weapon is None and self.room is None and self.character is None
-
-	def __repr__(self):
-		return self.character.value.name + " in the " + self.room.value.name + " with the " + self.weapon.value.name
-
-
-class Hand:
-
-	all: List[Card]
-	weapons: List[Card]
-	rooms: List[Card]
-	characters: List[Card]
-
-	def __init__(self):
-		self.all = []
-		self.weapons = []
-		self.rooms = []
-		self.characters = []
-
-	def add(self, card: Card):
-		self.all.append(card)
-
-		if card.type == CardType.WEAPON:
-			self.weapons.append(card)
-		elif card.type == CardType.ROOM:
-			self.rooms.append(card)
-		elif card.type == CardType.CHARACTER:
-			self.characters.append(card)
-
-	def __repr__(self):
-		return str(self.all)
-
-
-class SolutionMatcher:
-
-	def compare_to_hand(hand: Hand, solution: Solution) -> Solution:
-		matches = Solution(None, None, None)
-
-		try:
-			hand.weapons.index(solution.weapon)
-			matches.weapon = solution.weapon
-		except ValueError:
-			pass
-
-		try:
-			hand.rooms.index(solution.room)
-			matches.room = solution.room
-		except ValueError:
-			pass
-
-		try:
-			hand.characters.index(solution.character)
-			matches.character = solution.character
-		except ValueError:
-			pass
-
-		return matches
-
-	def is_match(a: Solution, b: Solution):
-		return a.weapon == b.weapon and a.room == b.room and a.character == b.character
-
-class LogBook:
-
-	log_book: Dict[Card, bool]
-	solution: Solution
-
-	def __init__(self):
-		self.log_book = dict()
-		self.solution = Solution(None, None, None)
-
-		for card in Deck.make_deck():
-			self.log_book[card] = False
-
-	def log(self, card: Card):
-		self.log_book[card] = True
-		self.find_solution()
-
-	## maybe store these as list so we don't need to loop every time
-	def get(self, card_type: CardType, known: bool) -> List[Card]:
-		list = []
-
-		for entry in self.log_book.items():
-			if entry[0].type == card_type and entry[1] == known:
-				list.append(entry[0])
-
-		return list
-
-	def find_solution(self):
-		if self.solution.is_complete():
-			return
-
-		if self.solution.character is None:
-			remaining = self.get(CardType.CHARACTER, False)
-			if len(remaining) == 1:
-				self.solution.character = remaining[0]
-
-		if self.solution.room is None:
-			remaining = self.get(CardType.ROOM, False)
-			if len(remaining) == 1:
-				self.solution.room = remaining[0]
-
-		if self.solution.weapon is None:
-			remaining = self.get(CardType.WEAPON, False)
-			if len(remaining) == 1:
-				self.solution.weapon = remaining[0]
-
-	def has_solution(self) -> bool:
-		return self.solution.is_complete()
-
-	def __repr__(self):
-		return str(self.log_book)
-			
-class Player:
-
-	# director: Director
-	character: Character
-	position: Tuple[int, int]
-	hand: Hand
-	log_book: LogBook
-	room: Room
-
-	def __init__(self):
-		self.hand = Hand()
-		self.log_book = LogBook()
-		self.room = None
-
-	def give_card(self, card: Card):
-		self.hand.add(card)
-		self.log_book.log(card)
-
-	def show_card(self, guess: Solution) -> Solution:
-		match = SolutionMatcher.compare_to_hand(self.hand)
-
-		if match.is_empty():
-			return None
-		return match
-
-	def make_guess(self):
-		guess = Solution(None, None, self.room)
-		guess.weapon = self.decide_weapon_guess()
-		guess.character = self.decide_character_guess()
-				
-		match = self.director.make_guess(guess)
-		if match is None:
-			self.log_book.solution = match
-
-	def take_turn(self):
-		if self.log_book.has_solution():
-			self.director.make_accusation(self, self.log_book.solution)
-			return
-
-		if self.room is None or not self.should_guess():
-			self.move(Director.roll())
-		else:		
-			self.make_guess()				
-
-	def move(self, roll: int):
-		raise Exception('Not Implemented')
-
-	def decide_weapon_guess(self):
-		raise Exception('Not Implemented')
-
-	def decide_character_guess(self):
-		raise Exception('Not Implemented')
-
-	def __repr__(self):
-		return str(self.character.name)
-
-class DumbPlayer(Player):
-
-	def __init__(self):
-		super().__init__()	
-
-	def decide_weapon_guess(self) -> Card:
-		return self.log_book.get(CardType.WEAPON, False)[0]
-
-	def decide_chacter_guess(self) -> Card:
-		return self.log_book.get(CardType.CHARACTER, False)[0]
-
-	def move(self, roll: int):
-		raise Exception('Not Implemented')	
-
-	def __repr__(self):
-		return "Dumb Player: " + super().__repr__()
+from player import *
 
 class Director:
 
-	## static
-	def roll() -> int:
-		return random.randint(1, 6)
+	
 
 	## static
 	def _pick_first(deck: List[Card], type: CardType) -> Card:
@@ -305,7 +45,7 @@ class Director:
 		self.solution = Solution(
 			Director._pick_first(deck, CardType.WEAPON),
 			Director._pick_first(deck, CardType.CHARACTER),
-			Director._pick_first(deck, CardType.ROOM)			
+			Director._pick_first(deck, CardType.ROOM)		
 		)
 
 		self._deal_cards(deck)
@@ -340,21 +80,26 @@ class Director:
 		random.shuffle(self.players)
 
 		order = [
-			Character.MISS_SCARLET,
-			Character.COLONEL_MUSTARD,
-			Character.MRS_WHITE,
-			Character.MRS_PEACOCK,
-			Character.MR_GREEN,
-			Character.PROFESSOR_PLUM
+			(Character.MISS_SCARLET, (1, 17)),
+			(Character.COLONEL_MUSTARD, (8, 24)),
+			(Character.MRS_WHITE, (25, 15)),
+			(Character.MR_GREEN, (25, 10)),
+			(Character.MRS_PEACOCK, (19, 1)),			
+			(Character.PROFESSOR_PLUM, (6, 1))
 		]
 
 		self.player_by_character = dict()
 
 		i = 0
 		for player in self.players:
-			player.character = order[i]
+			player.character = order[i][0]
 			self.player_by_character[order[i]] = player
-			i += 1
+
+			#assign start location
+			start = order[i][1]
+			player.position = (start[0] - 1, start[1] - 1)
+
+			i += 1		
 
 	## store the order somewhere so it doesn't need to be calculated each time
 	def make_guess(self, player: Player, solution: Solution) -> Solution:
@@ -380,8 +125,11 @@ class Director:
 
 		return None
 
+	def is_solution_match(a: Solution, b: Solution):
+		return a.weapon == b.weapon and a.room == b.room and a.character == b.character
+
 	def make_accusation(self, player: Player, solution: Solution):
-		if SolutionMatcher.is_match(self.solution, solution):
+		if self.is_solution_match(self.solution, solution):
 			self.winner = player
 		else:
 			## player loses and doesn't get any more turns
@@ -394,12 +142,12 @@ class Director:
 
 
 players = [
-	DumbPlayer(),
-	DumbPlayer(),
-	DumbPlayer(),
-	DumbPlayer(),
-	DumbPlayer(),
-	DumbPlayer()
+	ComputerPlayer(),
+	ComputerPlayer(),
+	ComputerPlayer(),
+	ComputerPlayer(),
+	ComputerPlayer(),
+	ComputerPlayer()
 ]
 
 director = Director()
