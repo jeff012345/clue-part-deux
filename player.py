@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import List, Set, Dict, Tuple, Optional
 from definitions import *
 from paths import RoomPath, Board
@@ -111,17 +112,18 @@ class LogBook:
 
 class Player:
 
-	# director: Director
+	director: Director
 	character: Character
 	position: Tuple[int, int]
 	hand: Hand
 	log_book: LogBook
 	room: Room
 
-	def __init__(self):
+	def __init__(self, director: Director):
 		self.hand = Hand()
 		self.log_book = LogBook()
 		self.room = None
+		self.director = director
 
 	def give_card(self, card: Card):
 		self.hand.add(card)
@@ -159,6 +161,9 @@ class Player:
 		if roll < room_path.distance:
 			raise Exception("Path is longer than roll")
 
+		if roll > room_path.distance:
+			raise Exception("Path is shorter than roll")
+
 		for pos in room_path.path:
 			self.position = pos
 			# move animation!
@@ -180,8 +185,8 @@ class Player:
 
 class ComputerPlayer(Player):
 
-	def __init__(self):
-		super().__init__()	
+	def __init__(self, director: Director):
+		super().__init__(director)	
 
 	def decide_weapon_guess(self) -> Card:
 		# return first unknown weapon

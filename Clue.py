@@ -6,9 +6,7 @@ from definitions import *
 from player import *
 
 class Director:
-
 	
-
 	## static
 	def _pick_first(deck: List[Card], type: CardType) -> Card:
 		i = 0
@@ -30,7 +28,7 @@ class Director:
 	def new_game(self, players: List[Player]):
 		self._assign_players(players)
 		self._setup()
-		self._play_game()		
+		self._play_game()
 
 		if self.winner is not None:
 			print("Winner is " + str(self.winner))
@@ -73,10 +71,6 @@ class Director:
 
 	def _assign_players(self, players: List[Player]):
 		self.players = players
-
-		for p in self.players:
-			p.director = self
-
 		random.shuffle(self.players)
 
 		order = [
@@ -140,17 +134,17 @@ class Director:
 		return self.winner is not None or len(self.players) == 1
 
 
+director = Director()
 
 players = [
-	ComputerPlayer(),
-	ComputerPlayer(),
-	ComputerPlayer(),
-	ComputerPlayer(),
-	ComputerPlayer(),
-	ComputerPlayer()
+	ComputerPlayer(director),
+	ComputerPlayer(director),
+	ComputerPlayer(director),
+	ComputerPlayer(director),
+	ComputerPlayer(director),
+	ComputerPlayer(director)
 ]
 
-director = Director()
 director.new_game(players);
 print(director.solution)
 
