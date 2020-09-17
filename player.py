@@ -68,6 +68,9 @@ class LogBook:
 			self.log_book[card] = False
 
 	def log(self, card: Card):
+		if card is None:
+			return
+
 		self.log_book[card] = True
 		self.find_solution()
 
@@ -130,43 +133,65 @@ class Player:
 		self.log_book.log(card)
 
 	def show_card(self, guess: Solution) -> Solution:
-		match = SolutionMatcher.compare_to_hand(self.hand)
+		match = SolutionMatcher.compare_to_hand(self.hand, guess)
 
 		if match.is_empty():
 			return None
 		return match
 
 	def make_guess(self):
-		guess = Solution(None, None, self.room)
+		print("Making a guess")
+		guess = Solution(None, None, Card(self.room, CardType.ROOM))
 		guess.weapon = self.decide_weapon_guess()
 		guess.character = self.decide_character_guess()
-				
-		match = self.director.make_guess(guess)
+		
+		print(guess)
+
+		match = self.director.make_guess(self, guess)
 		if match is None:
-			self.log_book.solution = match
+			print("solution found!")
+			self.log_book.solution = guess
+		else:
+			self.log_book.log(match.character)
+			self.log_book.log(match.weapon)
+			self.log_book.log(match.character)
 
 	def take_turn(self):
+		print(str(self.character) + " is taking a turn")
 		if self.log_book.has_solution():
+			print("Solution is found!")
+			print(self.log_book.solution)
 			self.director.make_accusation(self, self.log_book.solution)
 			return
 
 		if self.room is None or not self.should_guess_current_room():
 			roll = roll_dice()
+			print("Rolled a " + str(roll))
 			path = self.use_roll(roll)
 			self.move_path(roll, path)
-		else:		
+		else:
 			self.make_guess()				
 
 	def move_path(self, roll: int, room_path: RoomPath):
 		if roll < room_path.distance:
 			raise Exception("Path is longer than roll")
 
-		if roll > room_path.distance:
-			raise Exception("Path is shorter than roll")
+		print("Moving " + str(room_path.path))
 
-		for pos in room_path.path:
-			self.position = pos
+		for p in room_path.path:
+			if isinstance(p, Space):
+				self.room = None
+				self.position = (p.row, p.col)
+			elif isinstance(p, RoomPosition):
+				self.enter_room(p.room)
+			else:
+				raise Expection("wat?")
+
 			# move animation!
+	
+	def enter_room(self, room: Room):
+		self.room = room
+		self.position = None
 
 	def use_roll(self, roll: int) -> RoomPath:
 		raise Exception('Not Implemented')
@@ -189,11 +214,15 @@ class ComputerPlayer(Player):
 		super().__init__(director)	
 
 	def decide_weapon_guess(self) -> Card:
-		# return first unknown weapon
+		if self.log_book.solution.weapon is not None:
+			return self.log_book.solution.weapon
+
 		return self.log_book.get(CardType.WEAPON, False)[0]
 
-	def decide_chacter_guess(self) -> Card:
-		# return first unknown character
+	def decide_character_guess(self) -> Card:
+		if self.log_book.solution.character is not None:
+			return self.log_book.solution.character
+		
 		return self.log_book.get(CardType.CHARACTER, False)[0]
 
 	def should_guess_current_room(self) -> bool:

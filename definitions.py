@@ -140,7 +140,13 @@ class Solution:
 		return self.weapon is None and self.room is None and self.character is None
 
 	def __repr__(self):
-		return self.character.value.name + " in the " + self.room.value.name + " with the " + self.weapon.value.name
+		c = 'None' if self.character is None else self.character.value.name
+		r = 'None' if self.room is None else self.room.value.name
+		w = 'None' if self.weapon is None else self.weapon.value.name
+		return c + " in the " + r + " with the " + w
+
+	def is_match(self, other: Solution):
+		return self.weapon == other.weapon and self.room == other.room and self.character == other.character
 
 class Deck:
 

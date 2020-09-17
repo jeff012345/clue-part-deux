@@ -96,7 +96,7 @@ class Board:
 		start = Board.ROOM_POSITIONS[start]
 		goal = Board.ROOM_POSITIONS[goal]
 
-		path = find_path(start, goal)
+		path = Board.find_path(start, goal)
 		room_path = RoomPath(goal, path.path)
 		return room_path
 
@@ -201,7 +201,7 @@ kitchen_door.connections.append(study_door)
 lounge_door.connections.append(conservatory_door)
 conservatory_door.connections.append(lounge_door)
 
-if True:
+if False:
 	for row in board_positions:	
 		print(row)
 

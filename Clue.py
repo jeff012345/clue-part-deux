@@ -56,8 +56,6 @@ class Director:
 				if self._end_game():
 					return
 
-			break
-
 	def _deal_cards(self, deck):
 		i = 0
 		num_of_players = len(self.players)
@@ -87,7 +85,7 @@ class Director:
 		i = 0
 		for player in self.players:
 			player.character = order[i][0]
-			self.player_by_character[order[i]] = player
+			self.player_by_character[player.character] = player
 
 			#assign start location
 			start = order[i][1]
@@ -98,14 +96,16 @@ class Director:
 	## store the order somewhere so it doesn't need to be calculated each time
 	def make_guess(self, player: Player, solution: Solution) -> Solution:
 		## move the accused player
-		self.player_by_character[solution.character.value].room = solution.room.value
+		self.player_by_character[solution.character.value].enter_room(solution.room.value)
 
 		player_index = self.players.index(player)
 
 		## determine the order to ask each player (clockwise around the board)
 		if player_index == 0:
+			# first player
 			other_players = self.players[1:]
 		elif player_index == len(self.players) - 1:
+			# last player
 			other_players = self.players[:-1]
 		else:
 			other_players = self.players[player_index+1:] + self.players[0:player_index]
@@ -119,11 +119,11 @@ class Director:
 
 		return None
 
-	def is_solution_match(a: Solution, b: Solution):
-		return a.weapon == b.weapon and a.room == b.room and a.character == b.character
-
 	def make_accusation(self, player: Player, solution: Solution):
-		if self.is_solution_match(self.solution, solution):
+		print(str(player.character) + " is making an accusation")
+		print(solution)
+
+		if self.solution.is_match(solution):
 			self.winner = player
 		else:
 			## player loses and doesn't get any more turns
@@ -146,10 +146,8 @@ players = [
 ]
 
 director.new_game(players);
+print("Solution")
 print(director.solution)
 
-for player in director.players:
-	print(player.hand)
-	print(player.log_book)
-	print("===================")
+
 	  
