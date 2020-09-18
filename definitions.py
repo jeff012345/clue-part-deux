@@ -69,27 +69,6 @@ class Space(Position):
 	def pos_str(self):
 		return "(" + str(self.row + 1) + "," + str(self.col + 1) + ")"
 
-	#def __eq__(self, value):
-	#	return self.row == value.row and self.col == value.col
-
-	#def __ne__(self, value):
-	#	return self.row != value.row or self.col != value.col
-
-	#def __lt__(self, obj):
-	#	return False
-
-	#def __le__(self, obj):
-	#	return False
-
-	#def __gt__(self, obj):
-	#	return True
-
-	#def __ge__(self, obj):
-	#	return True
-
-	#def __hash__(self):
-	#	return int.__hash__(self.row) + int.__hash__(self.col)
-
 class Card:
 
 	value: Enum

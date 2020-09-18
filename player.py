@@ -154,7 +154,7 @@ class Player:
 		else:
 			self.log_book.log(match.character)
 			self.log_book.log(match.weapon)
-			self.log_book.log(match.character)
+			self.log_book.log(match.room)
 
 	def take_turn(self):
 		print(str(self.character) + " is taking a turn")
