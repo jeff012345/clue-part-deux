@@ -127,6 +127,8 @@ class Player:
 		self.log_book = LogBook()
 		self.room = None
 		self.director = director
+		self.director.register_player(self)
+		self.position = None
 
 	def give_card(self, card: Card):
 		self.hand.add(card)
@@ -210,8 +212,11 @@ class Player:
 
 class ComputerPlayer(Player):
 
+	remaining_path: RoomPath
+
 	def __init__(self, director: Director):
 		super().__init__(director)	
+		self.remaining_path = None
 
 	def decide_weapon_guess(self) -> Card:
 		if self.log_book.solution.weapon is not None:
@@ -226,10 +231,23 @@ class ComputerPlayer(Player):
 		return self.log_book.get(CardType.CHARACTER, False)[0]
 
 	def should_guess_current_room(self) -> bool:
-		# if the room is known, move to another
-		return not self.log_book.is_room_known(self.room)
+		# if the room is known, move to another unless all rooms are known
+		return not self.log_book.is_room_known(self.room) or self.log_book.solution.room is not None
 
 	def use_roll(self, roll: int) -> RoomPath:
+		if self.remaining_path is not None:
+			if self.remaining_path.distance > roll:
+				room = self.remaining_path.room
+				this_path = self.remaining_path.path[:roll]
+				remaining_path = self.remaining_path.path[roll:]
+
+				self.remaining_path = RoomPath(room, remaining_path)
+				return RoomPath(room, this_path)
+			else:
+				path = self.remaining_path
+				self.remaining_path = None			
+				return path				
+
 		# get all unknown rooms
 		unknown_rooms = list(map(lambda c: c.value, self.log_book.get(CardType.ROOM, False)))
 
@@ -242,7 +260,12 @@ class ComputerPlayer(Player):
 		
 		path = random.choice(room_paths)
 		if path.distance > roll:
+			# continue on the next turn
+			self.remaining_path = RoomPath(path.room, path.path[roll:])
+
 			path = RoomPath(path.room, path.path[:roll])
+
+			
 
 		return path
 

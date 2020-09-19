@@ -4,6 +4,14 @@ import random
 from paths import RoomPath, Board
 from definitions import *
 from player import *
+from threading import Lock
+import time
+
+class GameStatus(Enum):
+	INITIALIZED = 1
+	READY = 2
+	RUNNING = 3
+	ENDED = 4
 
 class Director:
 	
@@ -21,13 +29,23 @@ class Director:
 	player_by_character: Dict[Character, Player]
 	solution: Solution
 	winner: Player
+	game_status: GameStatus
+	end_game_lock: Lock
 
-	def __init__(self):
+	def __init__(self, end_game_lock: Lock):
+		self.end_game_lock = end_game_lock
+		self.players = []
+		self.game_status = GameStatus.INITIALIZED
+
+	def _reset(self):
 		self.winner = None
+		self.game_status = GameStatus.READY
 
-	def new_game(self, players: List[Player]):
-		self._assign_players(players)
+	def new_game(self):
+		self._reset()
+		self._assign_players()
 		self._setup()
+		
 		self._play_game()
 
 		if self.winner is not None:
@@ -35,6 +53,11 @@ class Director:
 		else:
 			## no more opponents left
 			print(str(self.players[0]) + " wins by default")
+
+		self.game_status = GameStatus.ENDED
+
+	def register_player(self, player: Player):
+		self.players.append(player)
 
 	def _setup(self):
 		deck = Deck.make_deck()
@@ -49,9 +72,13 @@ class Director:
 		self._deal_cards(deck)
 
 	def _play_game(self):		
+		self.game_status = GameStatus.RUNNING
+
 		while not self._end_game():
 			for player in self.players:
 				player.take_turn()
+
+				#time.sleep(1)
 
 				if self._end_game():
 					return
@@ -67,8 +94,7 @@ class Director:
 			if i == num_of_players:
 				i = 0
 
-	def _assign_players(self, players: List[Player]):
-		self.players = players
+	def _assign_players(self):
 		random.shuffle(self.players)
 
 		order = [
@@ -131,23 +157,9 @@ class Director:
 	
 	def _end_game(self):
 		## no winner and at least 2 players
-		return self.winner is not None or len(self.players) == 1
+		return self.winner is not None or len(self.players) == 1 or self.end_game_lock.locked() is True
 
-
-director = Director()
-
-players = [
-	ComputerPlayer(director),
-	ComputerPlayer(director),
-	ComputerPlayer(director),
-	ComputerPlayer(director),
-	ComputerPlayer(director),
-	ComputerPlayer(director)
-]
-
-director.new_game(players);
-print("Solution")
-print(director.solution)
-
-
-	  
+def new_game(director: Director):
+	director.new_game();
+	print("Solution")
+	print(director.solution)

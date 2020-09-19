@@ -32,6 +32,7 @@ board_spaces = [
 	[0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]  #25
 	#1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 
 ]
+
 #[(15,7), (15,8), (16,8), (17,8), (17,7), (18,7), (18,6), (18,5)]
 doors = dict()
 doors[Room.CONSERVATORY] = [(20, 5)]
@@ -43,6 +44,17 @@ doors[Room.HALL] = [(5, 10), (7, 12), (7, 13)]
 doors[Room.LOUNGE] = [(6, 18)]
 doors[Room.DINING_ROOM] = [(10, 18), (13, 17)]
 doors[Room.KITCHEN] = [(19, 20)]
+
+room_coorindates = dict()
+room_coorindates[Room.CONSERVATORY] = (23, 4)
+room_coorindates[Room.BALLROOM] = (21, 12)
+room_coorindates[Room.LIBRARY] = (9, 4)
+room_coorindates[Room.BILLARD_ROOM] = (15, 4)
+room_coorindates[Room.STUDY] = (3, 3)
+room_coorindates[Room.HALL] = (4, 12)
+room_coorindates[Room.LOUNGE] = (3, 21)
+room_coorindates[Room.DINING_ROOM] = (12, 20)
+room_coorindates[Room.KITCHEN] = (22, 21)
 
 class Path:
 	distance: int
