@@ -27,6 +27,18 @@ class Hand:
 		elif card.type == CardType.CHARACTER:
 			self.characters.append(card)
 
+	def has_card(self, card: Card):
+		try:
+			if card.type == CardType.WEAPON:
+				self.weapons.index(card)
+			elif card.type == CardType.ROOM:
+				self.rooms.index(card)
+			elif card.type == CardType.CHARACTER:
+				self.characters.index(card)
+			return True
+		except ValueError:
+			return False
+
 	def __repr__(self):
 		return str(self.all)
 
@@ -35,23 +47,14 @@ class SolutionMatcher:
 	def compare_to_hand(hand: Hand, solution: Solution) -> Solution:
 		matches = Solution(None, None, None)
 
-		try:
-			hand.weapons.index(solution.weapon)
+		if hand.has_card(solution.weapon):
 			matches.weapon = solution.weapon
-		except ValueError:
-			pass
 
-		try:
-			hand.rooms.index(solution.room)
+		if hand.has_card(solution.room):
 			matches.room = solution.room
-		except ValueError:
-			pass
 
-		try:
-			hand.characters.index(solution.character)
+		if hand.has_card(solution.character):
 			matches.character = solution.character
-		except ValueError:
-			pass
 
 		return matches	
 
@@ -123,12 +126,15 @@ class Player:
 	room: Room
 
 	def __init__(self, director: Director):
-		self.hand = Hand()
-		self.log_book = LogBook()
-		self.room = None
 		self.director = director
 		self.director.register_player(self)
+
+	def reset(self):
+		self.hand = Hand()
+		self.log_book = LogBook()
+		self.room = None		
 		self.position = None
+		self.character = None
 
 	def give_card(self, card: Card):
 		self.hand.add(card)
@@ -139,6 +145,18 @@ class Player:
 
 		if match.is_empty():
 			return None
+
+		# only have to show one card
+		if match.character is not None:
+			match.weapon = None
+			match.room = None
+		elif match.weapon is not None:
+			match.character = None
+			match.room = None
+		else:
+			match.weapon = None
+			match.character = None
+
 		return match
 
 	def make_guess(self):
@@ -218,6 +236,10 @@ class ComputerPlayer(Player):
 		super().__init__(director)	
 		self.remaining_path = None
 
+	def enter_room(self, room):
+		super().enter_room(room)
+		self.remaining_path = None
+
 	def decide_weapon_guess(self) -> Card:
 		if self.log_book.solution.weapon is not None:
 			return self.log_book.solution.weapon
@@ -232,21 +254,12 @@ class ComputerPlayer(Player):
 
 	def should_guess_current_room(self) -> bool:
 		# if the room is known, move to another unless all rooms are known
-		return not self.log_book.is_room_known(self.room) or self.log_book.solution.room is not None
+		return not self.log_book.is_room_known(self.room) \
+			or (self.log_book.solution.room is not None and self.hand.has_card(Card(self.room, CardType.ROOM)))
 
 	def use_roll(self, roll: int) -> RoomPath:
 		if self.remaining_path is not None:
-			if self.remaining_path.distance > roll:
-				room = self.remaining_path.room
-				this_path = self.remaining_path.path[:roll]
-				remaining_path = self.remaining_path.path[roll:]
-
-				self.remaining_path = RoomPath(room, remaining_path)
-				return RoomPath(room, this_path)
-			else:
-				path = self.remaining_path
-				self.remaining_path = None			
-				return path				
+			return self._use_remaining_roll(roll)
 
 		# get all unknown rooms
 		unknown_rooms = list(map(lambda c: c.value, self.log_book.get(CardType.ROOM, False)))
@@ -259,15 +272,27 @@ class ComputerPlayer(Player):
 			room_paths = Board.room_paths_from_room(self.room, unknown_rooms)
 		
 		path = random.choice(room_paths)
+
 		if path.distance > roll:
 			# continue on the next turn
 			self.remaining_path = RoomPath(path.room, path.path[roll:])
 
-			path = RoomPath(path.room, path.path[:roll])
-
-			
+			path = RoomPath(path.room, path.path[:roll])		
 
 		return path
+
+	def _use_remaining_roll(self, roll):
+		if self.remaining_path.distance > roll:
+			room = self.remaining_path.room
+			this_path = self.remaining_path.path[:roll]
+			remaining_path = self.remaining_path.path[roll:]
+
+			self.remaining_path = RoomPath(room, remaining_path)
+			return RoomPath(room, this_path)
+		else:
+			path = self.remaining_path
+			self.remaining_path = None			
+			return path				
 
 	def __repr__(self):
 		return "Computer Player: " + super().__repr__()

@@ -41,6 +41,9 @@ class Director:
 		self.winner = None
 		self.game_status = GameStatus.READY
 
+		for p in self.players:
+			p.reset()
+
 	def new_game(self):
 		self._reset()
 		self._assign_players()
@@ -124,26 +127,28 @@ class Director:
 		## move the accused player
 		self.player_by_character[solution.character.value].enter_room(solution.room.value)
 
-		player_index = self.players.index(player)
-
-		## determine the order to ask each player (clockwise around the board)
-		if player_index == 0:
-			# first player
-			other_players = self.players[1:]
-		elif player_index == len(self.players) - 1:
-			# last player
-			other_players = self.players[:-1]
-		else:
-			other_players = self.players[player_index+1:] + self.players[0:player_index]
-
 		## ask each player in order
-		for other_player in other_players:
+		for other_player in self._asking_order(player):
 			match = other_player.show_card(solution)
 
 			if match is not None:
 				return match
 
 		return None
+
+	def _asking_order(self, player: Player) -> List[Player]:
+		player_index = self.players.index(player)
+
+		## determine the order to ask each player (clockwise around the board)
+		if player_index == 0:
+			# first player
+			return self.players[1:]
+		elif player_index == len(self.players) - 1:
+			# last player
+			return self.players[:-1]
+		else:
+			return self.players[player_index+1:] + self.players[0:player_index]
+
 
 	def make_accusation(self, player: Player, solution: Solution):
 		print(str(player.character) + " is making an accusation")
