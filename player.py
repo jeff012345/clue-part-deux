@@ -67,7 +67,7 @@ class LogBook:
 		self.log_book = dict()
 		self.solution = Solution(None, None, None)
 
-		for card in Deck.make_deck():
+		for card in Deck.static_deck:
 			self.log_book[card] = False
 
 	def log(self, card: Card):

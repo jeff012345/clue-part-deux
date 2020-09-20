@@ -153,3 +153,5 @@ class Deck:
 			Card(Weapon.LEAD_PIPE, CardType.WEAPON),
 			Card(Weapon.KNIFE, CardType.WEAPON),
 		]
+
+	static_deck = make_deck()

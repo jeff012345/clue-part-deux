@@ -185,7 +185,7 @@ def new_game(director: Director):
 	#print(director.solution)
 
 
-if __name__ == "__main__":
+def main():
 	sum = 0
 	cnt = 0
 
@@ -201,7 +201,7 @@ if __name__ == "__main__":
 		ComputerPlayer(director)
 	]
 
-	while True:
+	while cnt <= 100:
 		start = time.perf_counter()
 		director.new_game();
 		end = time.perf_counter()
@@ -211,3 +211,6 @@ if __name__ == "__main__":
 
 		if cnt % 100 == 0:
 			print("Average Time per game = " + str(sum / cnt) +"; Total Games = " + str(cnt))
+
+if __name__ == "__main__":
+	main()
