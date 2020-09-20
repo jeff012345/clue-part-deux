@@ -213,21 +213,21 @@ kitchen_door.connections.append(study_door)
 lounge_door.connections.append(conservatory_door)
 conservatory_door.connections.append(lounge_door)
 
-if False:
-	for row in board_positions:	
-		print(row)
+#if False:
+#	for row in board_positions:	
+#		print(row)
 
-	def pos_to_str(p: Position):
-		if isinstance(p, Space):
-			return str(p.pos_str())
-		elif isinstance(p, RoomPosition):
-			return str(p.room)
-		return str(p)
+#	def pos_to_str(p: Position):
+#		if isinstance(p, Space):
+#			return str(p.pos_str())
+#		elif isinstance(p, RoomPosition):
+#			return str(p.room)
+#		return str(p)
 
-	for row in board_positions:	
-		for cell in row:
-			if cell is not None:
-				print(str(cell) + ': ' + str(list(map(pos_to_str, cell.connections)))) 
+#	for row in board_positions:	
+#		for cell in row:
+#			if cell is not None:
+#				print(str(cell) + ': ' + str(list(map(pos_to_str, cell.connections)))) 
 
 #start = Board.BOARD_POSITIONS[14][6] #15,7  
 #goal = Board.BOARD_POSITIONS[17][1] #18,5
@@ -243,8 +243,8 @@ if False:
 
 #(1,17) -> study
 
-start = Board.BOARD_POSITIONS[0][16] #(1,17)
-goal = Board.ROOM_POSITIONS[Room.STUDY]
-#goal = Board.BOARD_POSITIONS[4][6] #(5,7)
-path = a_star_search(start, goal)
-print(path)
+#start = Board.BOARD_POSITIONS[0][16] #(1,17)
+#goal = Board.ROOM_POSITIONS[Room.STUDY]
+##goal = Board.BOARD_POSITIONS[4][6] #(5,7)
+#path = a_star_search(start, goal)
+#print(path)
