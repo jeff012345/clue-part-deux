@@ -31,7 +31,6 @@ def run_board():
 
 
 def run_game():
-    
     try:
         while not end_game_lock.locked():
             run_game_lock.acquire()

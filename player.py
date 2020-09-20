@@ -75,7 +75,7 @@ class LogBook:
 			return
 
 		self.log_book[card] = True
-		self.find_solution()
+		self.find_solution(card.type)
 
 	## maybe store these as list so we don't need to loop every time
 	def get(self, card_type: CardType, known: bool) -> List[Card]:
@@ -87,21 +87,21 @@ class LogBook:
 
 		return list
 
-	def find_solution(self):
+	def find_solution(self, card_type: CardType):
 		if self.solution.is_complete():
 			return
 
-		if self.solution.character is None:
+		if card_type == CardType.CHARACTER and self.solution.character is None:
 			remaining = self.get(CardType.CHARACTER, False)
 			if len(remaining) == 1:
 				self.solution.character = remaining[0]
 
-		if self.solution.room is None:
+		if card_type == CardType.ROOM and self.solution.room is None:
 			remaining = self.get(CardType.ROOM, False)
 			if len(remaining) == 1:
 				self.solution.room = remaining[0]
 
-		if self.solution.weapon is None:
+		if card_type == CardType.WEAPON and self.solution.weapon is None:
 			remaining = self.get(CardType.WEAPON, False)
 			if len(remaining) == 1:
 				self.solution.weapon = remaining[0]
@@ -112,6 +112,16 @@ class LogBook:
 	def is_room_known(self, room: Room) -> bool:
 		room_card = Card(room, CardType.ROOM)
 		return self.log_book[room_card]
+
+	def found_solution(self, solution: Solution):
+		if not self.log_book[solution.character]:
+			self.solution.character = solution.character
+
+		if not self.log_book[solution.weapon]:
+			self.solution.weapon = solution.weapon
+
+		if not self.log_book[solution.room]:
+			self.solution.room = solution.room
 
 	def __repr__(self):
 		return str(self.log_book)
@@ -160,33 +170,33 @@ class Player:
 		return match
 
 	def make_guess(self):
-		print("Making a guess")
+		#print("Making a guess")
 		guess = Solution(None, None, Card(self.room, CardType.ROOM))
 		guess.weapon = self.decide_weapon_guess()
 		guess.character = self.decide_character_guess()
 		
-		print(guess)
+		#print(guess)
 
 		match = self.director.make_guess(self, guess)
 		if match is None:
-			print("solution found!")
-			self.log_book.solution = guess
+			#print("solution found!")
+			self.log_book.found_solution(guess)
 		else:
 			self.log_book.log(match.character)
 			self.log_book.log(match.weapon)
 			self.log_book.log(match.room)
 
 	def take_turn(self):
-		print(str(self.character) + " is taking a turn")
+		#print(str(self.character) + " is taking a turn")
 		if self.log_book.has_solution():
-			print("Solution is found!")
-			print(self.log_book.solution)
+			#print("Solution is found!")
+			#print(self.log_book.solution)
 			self.director.make_accusation(self, self.log_book.solution)
 			return
 
 		if self.room is None or not self.should_guess_current_room():
 			roll = roll_dice()
-			print("Rolled a " + str(roll))
+			#print("Rolled a " + str(roll))
 			path = self.use_roll(roll)
 			self.move_path(roll, path)
 		else:
@@ -196,7 +206,7 @@ class Player:
 		if roll < room_path.distance:
 			raise Exception("Path is longer than roll")
 
-		print("Moving " + str(room_path.path))
+		#print("Moving " + str(room_path.path))
 
 		for p in room_path.path:
 			if isinstance(p, Space):

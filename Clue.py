@@ -13,6 +13,15 @@ class GameStatus(Enum):
 	RUNNING = 3
 	ENDED = 4
 
+player_order = [
+	(Character.MISS_SCARLET, (1, 17)),
+	(Character.COLONEL_MUSTARD, (8, 24)),
+	(Character.MRS_WHITE, (25, 15)),
+	(Character.MR_GREEN, (25, 10)),
+	(Character.MRS_PEACOCK, (19, 1)),			
+	(Character.PROFESSOR_PLUM, (6, 1))
+]
+
 class Director:
 	
 	## static
@@ -26,6 +35,7 @@ class Director:
 		return None
 
 	players: List[Player]
+	remaining_players: List[Player]
 	player_by_character: Dict[Character, Player]
 	solution: Solution
 	winner: Player
@@ -36,6 +46,7 @@ class Director:
 		self.end_game_lock = end_game_lock
 		self.players = []
 		self.game_status = GameStatus.INITIALIZED
+		self.player_by_character = dict()
 
 	def _reset(self):
 		self.winner = None
@@ -51,11 +62,11 @@ class Director:
 		
 		self._play_game()
 
-		if self.winner is not None:
-			print("Winner is " + str(self.winner))
-		else:
-			## no more opponents left
-			print(str(self.players[0]) + " wins by default")
+		#if self.winner is not None:
+		#	print("Winner is " + str(self.winner))
+		#else:
+		#	## no more opponents left
+		#	print(str(self.players[0]) + " wins by default")
 
 		self.game_status = GameStatus.ENDED
 
@@ -78,7 +89,7 @@ class Director:
 		self.game_status = GameStatus.RUNNING
 
 		while not self._end_game():
-			for player in self.players:
+			for player in self.remaining_players:
 				player.take_turn()
 
 				#time.sleep(1)
@@ -97,35 +108,38 @@ class Director:
 			if i == num_of_players:
 				i = 0
 
-	def _assign_players(self):
+	def _assign_players(self):		
 		random.shuffle(self.players)
-
-		order = [
-			(Character.MISS_SCARLET, (1, 17)),
-			(Character.COLONEL_MUSTARD, (8, 24)),
-			(Character.MRS_WHITE, (25, 15)),
-			(Character.MR_GREEN, (25, 10)),
-			(Character.MRS_PEACOCK, (19, 1)),			
-			(Character.PROFESSOR_PLUM, (6, 1))
-		]
-
-		self.player_by_character = dict()
+		self.remaining_players = self.players.copy()
+		
+		self.player_by_character.clear()
 
 		i = 0
 		for player in self.players:
-			player.character = order[i][0]
+			player.character = player_order[i][0]
+
 			self.player_by_character[player.character] = player
 
 			#assign start location
-			start = order[i][1]
+			start = player_order[i][1]
 			player.position = (start[0] - 1, start[1] - 1)
 
 			i += 1		
 
 	## store the order somewhere so it doesn't need to be calculated each time
 	def make_guess(self, player: Player, solution: Solution) -> Solution:
+		if not solution.is_complete():
+			print('Incomplete guess')
+			print(solution)
+			print(player.log_book.log_book)
+			raise Exception()
+
 		## move the accused player
-		self.player_by_character[solution.character.value].enter_room(solution.room.value)
+		try:
+			self.player_by_character[solution.character.value].enter_room(solution.room.value)
+		except KeyError as err:
+			print(self.player_by_character)
+			raise err
 
 		## ask each player in order
 		for other_player in self._asking_order(player):
@@ -149,16 +163,17 @@ class Director:
 		else:
 			return self.players[player_index+1:] + self.players[0:player_index]
 
-
 	def make_accusation(self, player: Player, solution: Solution):
-		print(str(player.character) + " is making an accusation")
-		print(solution)
+		#print(str(player.character) + " is making an accusation")
+		#print(solution)
 
 		if self.solution.is_match(solution):
 			self.winner = player
 		else:
 			## player loses and doesn't get any more turns
-			self.players.remove(player)
+			self.remaining_players.remove(player)
+			print('this shouldn\'t happen')
+			raise Exception()
 	
 	def _end_game(self):
 		## no winner and at least 2 players
@@ -166,5 +181,33 @@ class Director:
 
 def new_game(director: Director):
 	director.new_game();
-	print("Solution")
-	print(director.solution)
+	#print("Solution")
+	#print(director.solution)
+
+
+if __name__ == "__main__":
+	sum = 0
+	cnt = 0
+
+	end_game_lock = Lock()
+	director = Director(end_game_lock)
+
+	players = [
+		ComputerPlayer(director),
+		ComputerPlayer(director),
+		ComputerPlayer(director),
+		ComputerPlayer(director),
+		ComputerPlayer(director),
+		ComputerPlayer(director)
+	]
+
+	while True:
+		start = time.perf_counter()
+		director.new_game();
+		end = time.perf_counter()
+
+		sum += end - start
+		cnt += 1
+
+		if cnt % 100 == 0:
+			print("Average Time per game = " + str(sum / cnt) +"; Total Games = " + str(cnt))
