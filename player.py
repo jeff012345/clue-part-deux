@@ -306,3 +306,17 @@ class ComputerPlayer(Player):
 
 	def __repr__(self):
 		return "Computer Player: " + super().__repr__()
+
+
+class RLPlayer(ComputerPlayer):
+
+
+
+	def decide_weapon_guess(self) -> Card:
+		raise Exception('Not Implemented')
+
+	def decide_character_guess(self) -> Card:
+		raise Exception('Not Implemented')
+
+	def should_guess_current_room(self) -> bool:
+		raise Exception('Not Implemented')
