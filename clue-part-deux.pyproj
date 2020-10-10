@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{f8b77ffa-60d7-49e6-ab74-6f911f5ea268}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>clue-tf-env.py</StartupFile>
+    <StartupFile>clue_tf.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -25,7 +25,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="astar.py" />
-    <Compile Include="clue-tf-env.py">
+    <Compile Include="clue_tf_env.py" />
+    <Compile Include="clue_tf_policy.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="clue_tf.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Clue.py" />

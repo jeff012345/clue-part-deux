@@ -1,1 +1,4 @@
 pygame
+tensorflow-gpu
+matplotlib
+ipython
