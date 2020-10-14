@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import IPython
-
+import os
 
 import tensorflow as tf
 
@@ -17,26 +17,28 @@ from tf_agents.eval import metric_utils
 from tf_agents.metrics import tf_metrics
 from tf_agents.networks import q_network
 from tf_agents.policies import random_tf_policy
+from tf_agents.policies import policy_saver
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.trajectories import trajectory
 from tf_agents.utils import common
 
-from clue_tf_env import ClueCardCategoryEnv
+from clue_tf_env import ClueCardCategoryEnv, CardGameEnv
 
 tf.compat.v1.enable_v2_behavior()
 
 ## utility functions
 def compute_avg_return(environment, policy, num_episodes=10):
-
     total_return = 0.0
+
     for _ in range(num_episodes):
         time_step = environment.reset()
         episode_return = 0.0
 
-    while not time_step.is_last():
-        action_step = policy.action(time_step)
-        time_step = environment.step(action_step.action)
-        episode_return += time_step.reward
+        while not time_step.is_last():
+            action_step = policy.action(time_step)
+            time_step = environment.step(action_step.action)
+            episode_return += time_step.reward
+
         total_return += episode_return
 
     avg_return = total_return / num_episodes
@@ -59,8 +61,8 @@ def collect_data(env, policy, buffer, steps):
 ##
 ## Hyperparameters
 ##
+#num_iterations = 5000 # @param {type:"integer"}
 num_iterations = 5000 # @param {type:"integer"}
-#num_iterations = 20000 # @param {type:"integer"}
 
 initial_collect_steps = 100  # @param {type:"integer"} 
 collect_steps_per_iteration = 1  # @param {type:"integer"}
@@ -77,13 +79,15 @@ eval_interval = 1000  # @param {type:"integer"}
 ## environment setup
 ##
 
-env_name = 'CartPole-v0'
-
+#env_name = 'CartPole-v0'
 #train_py_env = suite_gym.load(env_name)
 #eval_py_env = suite_gym.load(env_name)
 
 train_py_env = ClueCardCategoryEnv()
 eval_py_env = ClueCardCategoryEnv()
+
+#train_py_env = CardGameEnv()
+#eval_py_env = CardGameEnv()
 
 train_env = tf_py_environment.TFPyEnvironment(train_py_env)
 eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
@@ -127,17 +131,6 @@ collect_policy = agent.collect_policy
 
 random_policy = random_tf_policy.RandomTFPolicy(train_env.time_step_spec(),
                                                 train_env.action_spec())
-
-
-#example_environment = tf_py_environment.TFPyEnvironment(
-#    suite_gym.load('CartPole-v0'))
-#time_step = example_environment.reset()
-#random_policy.action(time_step)
-#compute_avg_return(eval_env, random_policy, num_eval_episodes)
-
-
-#res = compute_avg_return(eval_env, random_policy, num_eval_episodes)
-#print(res)
 
 
 ##
@@ -202,4 +195,6 @@ plt.xlabel('Iterations')
 plt.ylim(top=250)
 plt.show()
 
-print("hello world")
+policy_dir = os.path.join(".", 'policy')
+tf_policy_saver = policy_saver.PolicySaver(agent.policy)
+tf_policy_saver.save(policy_dir)
