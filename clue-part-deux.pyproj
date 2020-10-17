@@ -30,9 +30,6 @@
     </Compile>
     <Compile Include="astar.py" />
     <Compile Include="clue_tf_env.py" />
-    <Compile Include="clue_tf_policy.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="clue_tf.py">
       <SubType>Code</SubType>
     </Compile>

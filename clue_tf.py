@@ -22,7 +22,7 @@ from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.trajectories import trajectory
 from tf_agents.utils import common
 
-from clue_tf_env import ClueCardCategoryEnv, CardGameEnv
+from clue_tf_env import ClueCardCategoryEnv
 
 tf.compat.v1.enable_v2_behavior()
 

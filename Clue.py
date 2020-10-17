@@ -62,14 +62,6 @@ class Director:
 		
 		self._play_game()
 
-		#if self.winner is not None:
-		#	print("Winner is " + str(self.winner))
-		#else:
-		#	## no more opponents left
-		#	print(str(self.players[0]) + " wins by default")
-
-		self.game_status = GameStatus.ENDED
-
 	def register_player(self, player: Player):
 		self.players.append(player)
 
@@ -96,6 +88,8 @@ class Director:
 
 				if self._end_game():
 					return
+
+		self.game_status = GameStatus.ENDED
 
 	def _deal_cards(self, deck):
 		i = 0
@@ -142,13 +136,16 @@ class Director:
 			raise err
 
 		## ask each player in order
+		skipped_players = 0
 		for other_player in self._asking_order(player):
 			match = other_player.show_card(solution)
 
 			if match is not None:
-				return match
+				return (match, skipped_players)
 
-		return None
+			skipped_players += 1
+
+		return (None, skipped_players)
 
 	def _asking_order(self, player: Player) -> List[Player]:
 		player_index = self.players.index(player)

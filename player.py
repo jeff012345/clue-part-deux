@@ -174,10 +174,11 @@ class Player:
 		guess = Solution(None, None, Card(self.room, CardType.ROOM))
 		guess.weapon = self.decide_weapon_guess()
 		guess.character = self.decide_character_guess()
-		
-		#print(guess)
 
-		match = self.director.make_guess(self, guess)
+		(match, skipped_count) = self.director.make_guess(self, guess)
+		self._log_guess_match(match, skipped_count)
+
+	def _log_guess_match(self, match, skipped_count):
 		if match is None:
 			#print("solution found!")
 			self.log_book.found_solution(guess)
