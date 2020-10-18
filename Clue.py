@@ -13,7 +13,7 @@ class GameStatus(Enum):
 	RUNNING = 3
 	ENDED = 4
 
-player_order = [
+PLAYER_ORDER = [
 	(Character.MISS_SCARLET, (1, 17)),
 	(Character.COLONEL_MUSTARD, (8, 24)),
 	(Character.MRS_WHITE, (25, 15)),
@@ -42,30 +42,25 @@ class Director:
 	game_status: GameStatus
 	end_game_lock: Lock
 
-	def __init__(self, end_game_lock: Lock):
-		self.end_game_lock = end_game_lock
-		self.players = []
-		self.game_status = GameStatus.INITIALIZED
+	def __init__(self, end_game_lock: Lock, players: List[Player]):
 		self.player_by_character = dict()
 
-	def _reset(self):
+		self.end_game_lock = end_game_lock
+		self.players = players
+
+		for p in self.players:
+			p.director = self
+
+	def new_game(self):
 		self.winner = None
 		self.game_status = GameStatus.READY
 
-		for p in self.players:
-			p.reset()
+		self._assign_players()	
+		self._setup_cards()
 
-	def new_game(self):
-		self._reset()
-		self._assign_players()
-		self._setup()
-		
-		self._play_game()
+		self.game_status = GameStatus.INITIALIZED
 
-	def register_player(self, player: Player):
-		self.players.append(player)
-
-	def _setup(self):
+	def _setup_cards(self):
 		deck = Deck.make_deck()
 		random.shuffle(deck)
 
@@ -77,19 +72,31 @@ class Director:
 
 		self._deal_cards(deck)
 
-	def _play_game(self):		
+	def play_auto_game(self):
+		if self.game_status != GameStatus.INITIALIZED:
+			raise Exception("Game not setup")
+
 		self.game_status = GameStatus.RUNNING
 
 		while not self._end_game():
 			for player in self.remaining_players:
 				player.take_turn()
 
-				#time.sleep(1)
-
 				if self._end_game():
 					return
 
 		self.game_status = GameStatus.ENDED
+
+	def take_turns_until_player(self, stop_player: Player):
+		for player in self.remaining_players:
+			if player == stop_player:
+				return
+
+			player.take_turn()
+
+			if self._end_game():
+				self.game_status = GameStatus.ENDED
+				return
 
 	def _deal_cards(self, deck):
 		i = 0
@@ -102,20 +109,23 @@ class Director:
 			if i == num_of_players:
 				i = 0
 
-	def _assign_players(self):		
+	def _assign_players(self):
+		for p in self.players:
+			p.reset()
+
 		random.shuffle(self.players)
 		self.remaining_players = self.players.copy()
-		
+				
 		self.player_by_character.clear()
 
 		i = 0
 		for player in self.players:
-			player.character = player_order[i][0]
+			player.character = PLAYER_ORDER[i][0]
 
 			self.player_by_character[player.character] = player
 
-			#assign start location
-			start = player_order[i][1]
+			# assign start location
+			start = PLAYER_ORDER[i][1]
 			player.position = (start[0] - 1, start[1] - 1)
 
 			i += 1		
@@ -166,6 +176,7 @@ class Director:
 
 		if self.solution.is_match(solution):
 			self.winner = player
+			self.game_status = GameStatus.ENDED
 		else:
 			## player loses and doesn't get any more turns
 			self.remaining_players.remove(player)
@@ -186,21 +197,22 @@ def main():
 	sum = 0
 	cnt = 0
 
-	end_game_lock = Lock()
-	director = Director(end_game_lock)
-
 	players = [
-		ComputerPlayer(director),
-		ComputerPlayer(director),
-		ComputerPlayer(director),
-		ComputerPlayer(director),
-		ComputerPlayer(director),
-		ComputerPlayer(director)
+		ComputerPlayer(),
+		ComputerPlayer(),
+		ComputerPlayer(),
+		ComputerPlayer(),
+		ComputerPlayer(),
+		ComputerPlayer()
 	]
+
+	end_game_lock = Lock()
+	director = Director(end_game_lock, players)	
 
 	while cnt <= 100:
 		start = time.perf_counter()
-		director.new_game();
+		director.new_game()
+		director.play_auto_game();
 		end = time.perf_counter()
 
 		sum += end - start

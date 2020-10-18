@@ -62,7 +62,7 @@ def collect_data(env, policy, buffer, steps):
 ## Hyperparameters
 ##
 #num_iterations = 5000 # @param {type:"integer"}
-num_iterations = 5000 # @param {type:"integer"}
+num_iterations = 20000 # @param {type:"integer"}
 
 initial_collect_steps = 100  # @param {type:"integer"} 
 collect_steps_per_iteration = 1  # @param {type:"integer"}
@@ -143,9 +143,10 @@ replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
     max_length=replay_buffer_max_length)
 
 
-print(agent.collect_data_spec)
-print(agent.collect_data_spec._fields)
+#print(agent.collect_data_spec)
+#print(agent.collect_data_spec._fields)
 
+print("Collect Data")
 collect_data(train_env, random_policy, replay_buffer, initial_collect_steps)
 
 dataset = replay_buffer.as_dataset(
@@ -153,8 +154,7 @@ dataset = replay_buffer.as_dataset(
     sample_batch_size=batch_size, 
     num_steps=2).prefetch(3)
 
-print(dataset)
-
+#print(dataset)
 iterator = iter(dataset)
 
 
@@ -168,9 +168,11 @@ agent.train_step_counter.assign(0)
 avg_return = compute_avg_return(eval_env, agent.policy, num_eval_episodes)
 returns = [avg_return]
 
+print("Train")
 for _ in range(num_iterations):
 
     # Collect a few steps using collect_policy and save to the replay buffer.
+    #print("Train: iteration")
     collect_data(train_env, agent.collect_policy, replay_buffer, collect_steps_per_iteration)
 
     # Sample a batch of data from the buffer and update the agent's network.
@@ -192,7 +194,7 @@ iterations = range(0, num_iterations + 1, eval_interval)
 plt.plot(iterations, returns)
 plt.ylabel('Average Return')
 plt.xlabel('Iterations')
-plt.ylim(top=250)
+plt.ylim(top=0)
 plt.show()
 
 policy_dir = os.path.join(".", 'policy')
