@@ -6,7 +6,7 @@ import numpy as np
 
 from Clue import Director, GameStatus
 from player import Player, ComputerPlayer, PlayerAction
-from ai_players import RLPlayer
+from ai_players import RLPlayerTrainer
 from definitions import CardType, Card, Weapon
 
 from threading import Lock
@@ -48,7 +48,7 @@ class ClueCardCategoryEnv(py_environment.PyEnvironment):
         self._reset()
 
     def __init_clue__(self):
-        self._ai_player = RLPlayer()
+        self._ai_player = RLPlayerTrainer()
 
         self._players = [
 		    ComputerPlayer(),
@@ -112,7 +112,7 @@ class ClueCardCategoryEnv(py_environment.PyEnvironment):
                 return -1 * self._tries
             
             # AI player lost the game, make this worse
-            return -2 * self._max_tries
+            return -1 * self._max_tries
         
         # agent hit max tries
         return -1 * self._max_tries    

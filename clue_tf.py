@@ -62,7 +62,7 @@ def collect_data(env, policy, buffer, steps):
 ## Hyperparameters
 ##
 #num_iterations = 5000 # @param {type:"integer"}
-num_iterations = 20000 # @param {type:"integer"}
+num_iterations = 1000 # @param {type:"integer"}
 
 initial_collect_steps = 100  # @param {type:"integer"} 
 collect_steps_per_iteration = 1  # @param {type:"integer"}

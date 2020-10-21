@@ -4,6 +4,7 @@ import random
 from paths import RoomPath, Board
 from definitions import *
 from player import *
+from ai_players import RLPlayer
 from threading import Lock
 import time
 
@@ -197,13 +198,19 @@ def main():
 	sum = 0
 	cnt = 0
 
+	#ai_player = RLPlayer(weapon_policy = "policy_PoE-1", 
+	#				  character_policy = "policy_PoE-1")
+
+	ai_player = RLPlayer(weapon_policy = "policy-10-21_1000iter", 
+					  character_policy = "policy-10-21_1000iter")	
+
 	players = [
 		ComputerPlayer(),
 		ComputerPlayer(),
 		ComputerPlayer(),
 		ComputerPlayer(),
 		ComputerPlayer(),
-		ComputerPlayer()
+		ai_player
 	]
 
 	end_game_lock = Lock()
@@ -221,5 +228,20 @@ def main():
 		if cnt % 100 == 0:
 			print("Average Time per game = " + str(sum / cnt) +"; Total Games = " + str(cnt))
 
+def asfdlkjasf():
+
+	eval_py_env = ClueCardCategoryEnv()
+	num_episodes = 3
+	for _ in range(num_episodes):
+		time_step = eval_tf_env.reset()
+
+		while not time_step.is_last():
+			action_step = policy.action(time_step)
+			time_step = eval_tf_env.step(action_step.action)
+
+
+
+
 if __name__ == "__main__":
-	main()
+	#main()
+	asfdlkjasf()
