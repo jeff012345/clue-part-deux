@@ -62,7 +62,7 @@ def collect_data(env, policy, buffer, steps):
 ## Hyperparameters
 ##
 #num_iterations = 5000 # @param {type:"integer"}
-num_iterations = 1000 # @param {type:"integer"}
+num_iterations = 10000000 # @param {type:"integer"}
 
 initial_collect_steps = 100  # @param {type:"integer"} 
 collect_steps_per_iteration = 1  # @param {type:"integer"}
@@ -109,6 +109,7 @@ q_net = q_network.QNetwork(
 
 optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
 
+#train_step_counter = tf.compat.v1.train.get_or_create_global_step()
 train_step_counter = tf.Variable(0)
 
 agent = dqn_agent.DqnAgent(
@@ -121,7 +122,6 @@ agent = dqn_agent.DqnAgent(
 
 agent.initialize()
 
-
 ##
 ## Policies
 ##
@@ -131,7 +131,6 @@ collect_policy = agent.collect_policy
 
 random_policy = random_tf_policy.RandomTFPolicy(train_env.time_step_spec(),
                                                 train_env.action_spec())
-
 
 ##
 ## replay buffer
@@ -143,9 +142,26 @@ replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
     max_length=replay_buffer_max_length)
 
 
+## create the checkpointer
+checkpoint_dir = os.path.join(".", 'checkpoint')
+train_checkpointer = common.Checkpointer(
+    ckpt_dir=checkpoint_dir,
+    max_to_keep=1,
+    agent=agent,
+    policy=agent.policy,
+    replay_buffer=replay_buffer,
+    global_step=train_step_counter
+)
+
+if os.path.isdir(checkpoint_dir) and len(os.listdir(checkpoint_dir)) != 0:
+    train_checkpointer.initialize_or_restore()
+    train_step_counter = tf.compat.v1.train.get_global_step()
+    print("loading from checkpoint")  
+
 #print(agent.collect_data_spec)
 #print(agent.collect_data_spec._fields)
 
+## collect data for replay buffer
 print("Collect Data")
 collect_data(train_env, random_policy, replay_buffer, initial_collect_steps)
 
@@ -156,7 +172,6 @@ dataset = replay_buffer.as_dataset(
 
 #print(dataset)
 iterator = iter(dataset)
-
 
 # (Optional) Optimize by wrapping some of the code in a graph using TF function.
 agent.train = common.function(agent.train)
@@ -188,6 +203,10 @@ for _ in range(num_iterations):
         avg_return = compute_avg_return(eval_env, agent.policy, num_eval_episodes)
         print('step = {0}: Average Return = {1}'.format(step, avg_return))
         returns.append(avg_return)
+
+        # checkpoint saved
+        train_checkpointer.save(train_step_counter)
+
 
 
 iterations = range(0, num_iterations + 1, eval_interval)

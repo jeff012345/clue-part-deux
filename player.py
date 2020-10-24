@@ -140,14 +140,20 @@ class LogBook:
 		return self.log_book[room_card]
 
 	def found_solution(self, solution: Solution):
-		if not self.log_book[solution.character]:
-			self.solution.character = solution.character
+		if self.solution.character is None and not self.log_book[solution.character]:
+			self.solution.character = solution.character			
+			self.characters = np.ones((6,), dtype=np.int32)
+			self.characters[solution.character.value.value - 1] = 0
 
-		if not self.log_book[solution.weapon]:
+		if self.solution.weapon is None and not self.log_book[solution.weapon]:
 			self.solution.weapon = solution.weapon
+			self.weapons = np.ones((6,), dtype=np.int32)
+			self.weapons[solution.character.value.value - 1] = 0
 
-		if not self.log_book[solution.room]:
+		if self.solution.room is None and not self.log_book[solution.room]:
 			self.solution.room = solution.room
+			self.rooms = np.ones((6,), dtype=np.int32)
+			self.rooms[solution.character.value.value - 1] = 0
 
 	def __repr__(self):
 		return str(self.log_book)

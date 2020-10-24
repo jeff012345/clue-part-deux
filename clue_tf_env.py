@@ -3,11 +3,12 @@ from typing import List
 
 import tensorflow as tf
 import numpy as np
+import math
 
 from Clue import Director, GameStatus
 from player import Player, ComputerPlayer, PlayerAction
 from ai_players import RLPlayerTrainer
-from definitions import CardType, Card, Weapon
+from definitions import CardType, Card, Weapon, Character
 
 from threading import Lock
 
@@ -30,13 +31,16 @@ class ClueCardCategoryEnv(py_environment.PyEnvironment):
     _clue: Director
     _ai_player: Player
     
-    def __init__(self, num_of_cards = 6):
-        self._num_of_cards = num_of_cards
-        self._max_tries = num_of_cards * 2 #5 * 5 * 8
+    def __init__(self):
+        self._num_of_cards = 6 + 6
+        self._num_of_combos = 6 * 6
+
+        self._max_tries = self._num_of_combos * 2
+
         self._action_spec = array_spec.BoundedArraySpec(shape=(1,), 
                                                         dtype=np.int32, 
                                                         minimum=0, 
-                                                        maximum=self._num_of_cards - 1, 
+                                                        maximum=self._num_of_combos - 1, 
                                                         name='action')
 
         self._observation_spec = array_spec.BoundedArraySpec(shape=(self._num_of_cards,), 
@@ -76,9 +80,13 @@ class ClueCardCategoryEnv(py_environment.PyEnvironment):
 
         self._clue.new_game()
 
-        self._state = self._ai_player.log_book.weapons
+        self._update_state()
 
         return ts.restart(self._state)
+
+    def _update_state(self):
+        arrs = (self._ai_player.log_book.weapons, self._ai_player.log_book.characters)
+        self._state = np.concatenate(arrs, axis=None)
 
     def _step(self, action):
         if self._episode_ended:
@@ -96,6 +104,8 @@ class ClueCardCategoryEnv(py_environment.PyEnvironment):
         
         # make a guess        
         self._guess(action[0])
+
+        self._update_state()
 
         # Make sure episodes don't go on forever.
         if self._episode_ended or self._tries == self._max_tries:            
@@ -115,7 +125,7 @@ class ClueCardCategoryEnv(py_environment.PyEnvironment):
             return -1 * self._max_tries
         
         # agent hit max tries
-        return -1 * self._max_tries    
+        return -1 * self._max_tries
 
     def _take_turns_until_guess(self):
         player_action = None
@@ -145,7 +155,11 @@ class ClueCardCategoryEnv(py_environment.PyEnvironment):
     def _guess(self, action):
         self._tries += 1
 
-        self._ai_player.weapon_guess = Card(Weapon(action + 1), CardType.WEAPON)
+        character_ordinal = (math.floor(action / 6) % 6) + 1
+        weapon_ordinal = (action % 6) + 1
+
+        self._ai_player.weapon_guess = Card(Weapon(weapon_ordinal), CardType.WEAPON)
+        self._ai_player.character_guess = Card(Character(character_ordinal), CardType.CHARACTER)
         self._ai_player.make_guess()
 
 

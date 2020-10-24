@@ -9,10 +9,10 @@ from tf_agents.trajectories import time_step as ts
 
 tf.compat.v1.enable_v2_behavior()
 
-
 class RLPlayerTrainer(ComputerPlayer):	
 
 	weapon_guess: Card
+	character_guess: Card
 
 	def __init__(self):
 		super().__init__()
@@ -24,12 +24,16 @@ class RLPlayerTrainer(ComputerPlayer):
 		return self.room == self.director.solution.room.value
 		#return super().should_guess_current_room()
 
-	def decide_character_guess(self) -> Card:
-		# pick the right character for training
-		return self.director.solution.character
-
 	def _get_unknown_rooms(self) -> List[Room]:
 		return [self.director.solution.room.value]
+
+	def decide_character_guess(self) -> Card:
+		if self.character_guess is None:
+			raise Exception("No character guess set")
+
+		temp = self.character_guess
+		self.character_guess = None
+		return temp
 
 	def decide_weapon_guess(self) -> Card:
 		if self.weapon_guess is None:
