@@ -22,7 +22,7 @@ from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.trajectories import trajectory
 from tf_agents.utils import common
 
-from clue_tf_env import ClueCardCategoryEnv, CardGameEnv
+from clue_tf_env import ClueCardCategoryEnv
 
 tf.compat.v1.enable_v2_behavior()
 
@@ -61,8 +61,7 @@ def collect_data(env, policy, buffer, steps):
 ##
 ## Hyperparameters
 ##
-#num_iterations = 5000 # @param {type:"integer"}
-num_iterations = 5000 # @param {type:"integer"}
+num_iterations = 100 # @param {type:"integer"}
 
 initial_collect_steps = 100  # @param {type:"integer"} 
 collect_steps_per_iteration = 1  # @param {type:"integer"}
@@ -109,6 +108,7 @@ q_net = q_network.QNetwork(
 
 optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
 
+#train_step_counter = tf.compat.v1.train.get_or_create_global_step()
 train_step_counter = tf.Variable(0)
 
 agent = dqn_agent.DqnAgent(
@@ -121,7 +121,6 @@ agent = dqn_agent.DqnAgent(
 
 agent.initialize()
 
-
 ##
 ## Policies
 ##
@@ -131,7 +130,6 @@ collect_policy = agent.collect_policy
 
 random_policy = random_tf_policy.RandomTFPolicy(train_env.time_step_spec(),
                                                 train_env.action_spec())
-
 
 ##
 ## replay buffer
@@ -143,9 +141,27 @@ replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
     max_length=replay_buffer_max_length)
 
 
-print(agent.collect_data_spec)
-print(agent.collect_data_spec._fields)
+## create the checkpointer
+checkpoint_dir = os.path.join(".", 'checkpoint')
+train_checkpointer = common.Checkpointer(
+    ckpt_dir=checkpoint_dir,
+    max_to_keep=1,
+    agent=agent,
+    policy=agent.policy,
+    replay_buffer=replay_buffer,
+    global_step=train_step_counter
+)
 
+if os.path.isdir(checkpoint_dir) and len(os.listdir(checkpoint_dir)) != 0:
+    train_checkpointer.initialize_or_restore()
+    train_step_counter = tf.compat.v1.train.get_global_step()
+    print("loading from checkpoint")  
+
+#print(agent.collect_data_spec)
+#print(agent.collect_data_spec._fields)
+
+## collect data for replay buffer
+print("Collect Data")
 collect_data(train_env, random_policy, replay_buffer, initial_collect_steps)
 
 dataset = replay_buffer.as_dataset(
@@ -153,10 +169,8 @@ dataset = replay_buffer.as_dataset(
     sample_batch_size=batch_size, 
     num_steps=2).prefetch(3)
 
-print(dataset)
-
+#print(dataset)
 iterator = iter(dataset)
-
 
 # (Optional) Optimize by wrapping some of the code in a graph using TF function.
 agent.train = common.function(agent.train)
@@ -168,9 +182,11 @@ agent.train_step_counter.assign(0)
 avg_return = compute_avg_return(eval_env, agent.policy, num_eval_episodes)
 returns = [avg_return]
 
+print("Train")
 for _ in range(num_iterations):
 
     # Collect a few steps using collect_policy and save to the replay buffer.
+    #print("Train: iteration")
     collect_data(train_env, agent.collect_policy, replay_buffer, collect_steps_per_iteration)
 
     # Sample a batch of data from the buffer and update the agent's network.
@@ -187,12 +203,16 @@ for _ in range(num_iterations):
         print('step = {0}: Average Return = {1}'.format(step, avg_return))
         returns.append(avg_return)
 
+        # checkpoint saved
+        train_checkpointer.save(train_step_counter)
+
+
 
 iterations = range(0, num_iterations + 1, eval_interval)
 plt.plot(iterations, returns)
 plt.ylabel('Average Return')
 plt.xlabel('Iterations')
-plt.ylim(top=250)
+plt.ylim(top=0)
 plt.show()
 
 policy_dir = os.path.join(".", 'policy')

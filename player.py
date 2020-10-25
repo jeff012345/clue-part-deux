@@ -3,6 +3,12 @@ from typing import List, Set, Dict, Tuple, Optional
 from definitions import *
 from paths import RoomPath, Board
 import random
+import numpy as np
+
+class PlayerAction(Enum):
+	ACCUSATION = 1
+	GUESS = 2
+	MOVE = 3
 
 class Hand:
 
@@ -61,11 +67,20 @@ class SolutionMatcher:
 class LogBook:
 
 	log_book: Dict[Card, bool]
+	
+	weapons: List[np.int32]
+	characters: List[np.int32]
+	rooms: List[np.int32]
+
 	solution: Solution
 
 	def __init__(self):
 		self.log_book = dict()
 		self.solution = Solution(None, None, None)
+
+		self.weapons = np.zeros((6,), dtype=np.int32)
+		self.characters = np.zeros((6,), dtype=np.int32)
+		self.rooms = np.zeros((9,), dtype=np.int32)
 
 		for card in Deck.static_deck:
 			self.log_book[card] = False
@@ -76,6 +91,15 @@ class LogBook:
 
 		self.log_book[card] = True
 		self.find_solution(card.type)
+
+		index = card.value.value - 1
+
+		if card.type == CardType.WEAPON:
+			self.weapons[index] = 1
+		elif card.type == CardType.CHARACTER:
+			self.characters[index] = 1
+		else:
+			self.rooms[index] = 1
 
 	## maybe store these as list so we don't need to loop every time
 	def get(self, card_type: CardType, known: bool) -> List[Card]:
@@ -114,14 +138,20 @@ class LogBook:
 		return self.log_book[room_card]
 
 	def found_solution(self, solution: Solution):
-		if not self.log_book[solution.character]:
-			self.solution.character = solution.character
+		if self.solution.character is None and not self.log_book[solution.character]:
+			self.solution.character = solution.character			
+			self.characters = np.ones((6,), dtype=np.int32)
+			self.characters[solution.character.value.value - 1] = 0
 
-		if not self.log_book[solution.weapon]:
+		if self.solution.weapon is None and not self.log_book[solution.weapon]:
 			self.solution.weapon = solution.weapon
+			self.weapons = np.ones((6,), dtype=np.int32)
+			self.weapons[solution.character.value.value - 1] = 0
 
-		if not self.log_book[solution.room]:
+		if self.solution.room is None and not self.log_book[solution.room]:
 			self.solution.room = solution.room
+			self.rooms = np.ones((6,), dtype=np.int32)
+			self.rooms[solution.character.value.value - 1] = 0
 
 	def __repr__(self):
 		return str(self.log_book)
@@ -135,9 +165,8 @@ class Player:
 	log_book: LogBook
 	room: Room
 
-	def __init__(self, director: Director):
-		self.director = director
-		self.director.register_player(self)
+	def __init__(self):
+		pass
 
 	def reset(self):
 		self.hand = Hand()
@@ -174,10 +203,11 @@ class Player:
 		guess = Solution(None, None, Card(self.room, CardType.ROOM))
 		guess.weapon = self.decide_weapon_guess()
 		guess.character = self.decide_character_guess()
-		
-		#print(guess)
 
-		match = self.director.make_guess(self, guess)
+		(match, skipped_count) = self.director.make_guess(self, guess)
+		self._log_guess_match(guess, match, skipped_count)
+
+	def _log_guess_match(self, guess, match, skipped_count):
 		if match is None:
 			#print("solution found!")
 			self.log_book.found_solution(guess)
@@ -186,21 +216,26 @@ class Player:
 			self.log_book.log(match.weapon)
 			self.log_book.log(match.room)
 
-	def take_turn(self):
-		#print(str(self.character) + " is taking a turn")
-		if self.log_book.has_solution():
-			#print("Solution is found!")
-			#print(self.log_book.solution)
-			self.director.make_accusation(self, self.log_book.solution)
-			return
+	def take_turn(self, action: PlayerAction = None):		
+		action = action if action is not None else self.next_turn_action()
 
-		if self.room is None or not self.should_guess_current_room():
+		if action == PlayerAction.ACCUSATION:
+			self.director.make_accusation(self, self.log_book.solution)
+		elif action == PlayerAction.MOVE:
 			roll = roll_dice()
-			#print("Rolled a " + str(roll))
 			path = self.use_roll(roll)
 			self.move_path(roll, path)
 		else:
-			self.make_guess()				
+			self.make_guess()			
+
+	def next_turn_action(self):
+		if self.log_book.has_solution():
+			return PlayerAction.ACCUSATION
+
+		if self.room is None or not self.should_guess_current_room():
+			return PlayerAction.MOVE
+
+		return PlayerAction.GUESS
 
 	def move_path(self, roll: int, room_path: RoomPath):
 		if roll < room_path.distance:
@@ -217,7 +252,7 @@ class Player:
 			else:
 				raise Expection("wat?")
 
-			# move animation!
+			# move animation?
 	
 	def enter_room(self, room: Room):
 		self.room = room
@@ -242,8 +277,8 @@ class ComputerPlayer(Player):
 
 	remaining_path: RoomPath
 
-	def __init__(self, director: Director):
-		super().__init__(director)	
+	def __init__(self):
+		super().__init__()	
 		self.remaining_path = None
 
 	def enter_room(self, room):
@@ -254,13 +289,13 @@ class ComputerPlayer(Player):
 		if self.log_book.solution.weapon is not None:
 			return self.log_book.solution.weapon
 
-		return self.log_book.get(CardType.WEAPON, False)[0]
+		return random.choice(self.log_book.get(CardType.WEAPON, False))
 
 	def decide_character_guess(self) -> Card:
 		if self.log_book.solution.character is not None:
 			return self.log_book.solution.character
 		
-		return self.log_book.get(CardType.CHARACTER, False)[0]
+		return random.choice(self.log_book.get(CardType.CHARACTER, False))
 
 	def should_guess_current_room(self) -> bool:
 		# if the room is known, move to another unless all rooms are known
@@ -272,7 +307,7 @@ class ComputerPlayer(Player):
 			return self._use_remaining_roll(roll)
 
 		# get all unknown rooms
-		unknown_rooms = list(map(lambda c: c.value, self.log_book.get(CardType.ROOM, False)))
+		unknown_rooms = self._get_unknown_rooms()
 
 		# find the closest unknown room
 		room_paths = None
@@ -290,6 +325,9 @@ class ComputerPlayer(Player):
 			path = RoomPath(path.room, path.path[:roll])		
 
 		return path
+
+	def _get_unknown_rooms(self) -> List[Room]:
+		return list(map(lambda c: c.value, self.log_book.get(CardType.ROOM, False)))
 
 	def _use_remaining_roll(self, roll):
 		if self.remaining_path.distance > roll:
