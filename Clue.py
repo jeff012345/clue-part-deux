@@ -23,6 +23,14 @@ PLAYER_ORDER = [
 	(Character.PROFESSOR_PLUM, (6, 1))
 ]
 
+PLAYER_ROTATION: Dict[Character, Character] = dict()
+PLAYER_ROTATION[Character.MISS_SCARLET] = Character.COLONEL_MUSTARD
+PLAYER_ROTATION[Character.COLONEL_MUSTARD] = Character.MRS_WHITE
+PLAYER_ROTATION[Character.MRS_WHITE] = Character.MR_GREEN
+PLAYER_ROTATION[Character.MR_GREEN] = Character.MRS_PEACOCK
+PLAYER_ROTATION[Character.MRS_PEACOCK] = Character.PROFESSOR_PLUM
+PLAYER_ROTATION[Character.PROFESSOR_PLUM] = Character.MISS_SCARLET
+
 class Director:
 	
 	## static
@@ -42,6 +50,8 @@ class Director:
 	winner: Player
 	game_status: GameStatus
 	end_game_lock: Lock
+
+	active_player: Player
 
 	def __init__(self, end_game_lock: Lock, players: List[Player]):
 		self.player_by_character = dict()
@@ -89,15 +99,24 @@ class Director:
 		self.game_status = GameStatus.ENDED
 
 	def take_turns_until_player(self, stop_player: Player):
-		for player in self.remaining_players:
-			if player == stop_player:
+		while self.active_player != stop_player:
+			self.player_take_turn(self.active_player)
+
+			if self.game_status == GameStatus.ENDED:
 				return
 
-			player.take_turn()
+	def player_take_turn(self, player: Player):
+		player.take_turn()
 
-			if self._end_game():
-				self.game_status = GameStatus.ENDED
-				return
+		if self._end_game():
+			self.game_status = GameStatus.ENDED
+			return
+
+		self.next_player()
+
+	def next_player(self):
+		next_character = PLAYER_ROTATION[self.active_player.character]
+		self.active_player = self.player_by_character[next_character]
 
 	def _deal_cards(self, deck):
 		i = 0
@@ -129,7 +148,9 @@ class Director:
 			start = PLAYER_ORDER[i][1]
 			player.position = (start[0] - 1, start[1] - 1)
 
-			i += 1		
+			i += 1
+			
+		self.active_player = self.players[0]
 
 	## store the order somewhere so it doesn't need to be calculated each time
 	def make_guess(self, player: Player, solution: Solution) -> Solution:
@@ -140,11 +161,12 @@ class Director:
 			raise Exception()
 
 		## move the accused player
-		try:
-			self.player_by_character[solution.character.value].enter_room(solution.room.value)
-		except KeyError as err:
-			print(self.player_by_character)
-			raise err
+		# removed for training
+		#try:
+		#	self.player_by_character[solution.character.value].enter_room(solution.room.value)
+		#except KeyError as err:
+		#	print(self.player_by_character)
+		#	raise err
 
 		## ask each player in order
 		skipped_players = 0
@@ -201,8 +223,7 @@ def main():
 	#ai_player = RLPlayer(weapon_policy = "policy_PoE-1", 
 	#				  character_policy = "policy_PoE-1")
 
-	ai_player = RLPlayer(weapon_policy = "policy-10-21_1000iter", 
-					  character_policy = "policy-10-21_1000iter")	
+	ai_player = RLPlayer()	
 
 	players = [
 		ComputerPlayer(),

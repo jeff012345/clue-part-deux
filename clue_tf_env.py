@@ -7,7 +7,7 @@ import math
 
 from Clue import Director, GameStatus
 from player import Player, ComputerPlayer, PlayerAction
-from ai_players import RLPlayerTrainer
+from ai_players import RLPlayerTrainer, RLPlayer
 from definitions import CardType, Card, Weapon, Character
 
 from threading import Lock
@@ -31,7 +31,7 @@ class ClueCardCategoryEnv(py_environment.PyEnvironment):
     _clue: Director
     _ai_player: Player
     
-    def __init__(self):
+    def __init__(self, eval = False):
         self._num_of_cards = 6 + 6
         self._num_of_combos = 6 * 6
 
@@ -48,11 +48,14 @@ class ClueCardCategoryEnv(py_environment.PyEnvironment):
                                                              minimum=0, 
                                                              name='observation')
        
-        self.__init_clue__()
+        self.__init_clue__(eval)
         self._reset()
 
-    def __init_clue__(self):
-        self._ai_player = RLPlayerTrainer()
+    def __init_clue__(self, eval):
+        if eval:
+            self._ai_player = RLPlayer()
+        else:
+            self._ai_player = RLPlayerTrainer()
 
         self._players = [
 		    ComputerPlayer(),
@@ -107,25 +110,19 @@ class ClueCardCategoryEnv(py_environment.PyEnvironment):
 
         self._update_state()
 
-        # Make sure episodes don't go on forever.
-        if self._episode_ended or self._tries == self._max_tries:            
-            self._episode_ended = True
-            return ts.termination(self._state, self._calc_reward())
-        else:
-            return ts.transition(self._state, reward=0.0, discount=1.0)
+        if self._tries == self._max_tries:
+            raise Exception("game took too long")
+
+        return ts.transition(self._state, reward=0.0, discount=1.0)
 
     # max reward = -1 * num_of_cards
     def _calc_reward(self) -> int:
-        if self._clue.game_status == GameStatus.ENDED:
-            if self._clue.winner == self._ai_player:
-                # AI player won
-                return -1 * self._tries
+        if self._clue.winner == self._ai_player:
+            # AI player won
+            return -1 * self._tries
             
-            # AI player lost the game, make this worse
-            return -1 * self._max_tries
-        
-        # agent hit max tries
-        return -1 * self._max_tries
+        # AI player lost the game, make this worse
+        return -2 * self._max_tries
 
     def _take_turns_until_guess(self):
         player_action = None
@@ -141,10 +138,10 @@ class ClueCardCategoryEnv(py_environment.PyEnvironment):
             player_action = self._ai_player.next_turn_action()
 
             if player_action == PlayerAction.GUESS:
-                return
+                break
 
             # take the AI player turn
-            self._ai_player.take_turn(player_action)
+            self._clue.player_take_turn(self._ai_player)
             player_action = None
 
             if self._clue.game_status == GameStatus.ENDED:
@@ -161,6 +158,7 @@ class ClueCardCategoryEnv(py_environment.PyEnvironment):
         self._ai_player.weapon_guess = Card(Weapon(weapon_ordinal), CardType.WEAPON)
         self._ai_player.character_guess = Card(Character(character_ordinal), CardType.CHARACTER)
         self._ai_player.make_guess()
+        self._clue.next_player()
 
 
 if __name__ == "__main__":

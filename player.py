@@ -101,8 +101,6 @@ class LogBook:
 		else:
 			self.rooms[index] = 1
 
-		i = 1
-
 	## maybe store these as list so we don't need to loop every time
 	def get(self, card_type: CardType, known: bool) -> List[Card]:
 		list = []
@@ -291,13 +289,13 @@ class ComputerPlayer(Player):
 		if self.log_book.solution.weapon is not None:
 			return self.log_book.solution.weapon
 
-		return self.log_book.get(CardType.WEAPON, False)[0]
+		return random.choice(self.log_book.get(CardType.WEAPON, False))
 
 	def decide_character_guess(self) -> Card:
 		if self.log_book.solution.character is not None:
 			return self.log_book.solution.character
 		
-		return self.log_book.get(CardType.CHARACTER, False)[0]
+		return random.choice(self.log_book.get(CardType.CHARACTER, False))
 
 	def should_guess_current_room(self) -> bool:
 		# if the room is known, move to another unless all rooms are known
