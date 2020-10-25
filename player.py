@@ -78,9 +78,9 @@ class LogBook:
 		self.log_book = dict()
 		self.solution = Solution(None, None, None)
 
-		self.weapons = np.zeros((6,), dtype=np.int32)
-		self.characters = np.zeros((6,), dtype=np.int32)
-		self.rooms = np.zeros((9,), dtype=np.int32)
+		self.weapons = np.zeros((6,), dtype=np.float64)
+		self.characters = np.zeros((6,), dtype=np.float64)
+		self.rooms = np.zeros((9,), dtype=np.float64)
 
 		for card in Deck.static_deck:
 			self.log_book[card] = False

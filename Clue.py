@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Set, Dict, Tuple, Optional
+from typing import List, Set, Dict, Tuple, Optional, Callable
 import random
 from paths import RoomPath, Board
 from definitions import *
@@ -31,6 +31,19 @@ PLAYER_ROTATION[Character.MR_GREEN] = Character.MRS_PEACOCK
 PLAYER_ROTATION[Character.MRS_PEACOCK] = Character.PROFESSOR_PLUM
 PLAYER_ROTATION[Character.PROFESSOR_PLUM] = Character.MISS_SCARLET
 
+class GameEvent(Enum):
+	GUESS = 1
+
+class GuessEvent:
+	player: Player
+	solution: Solution
+	skipped_players: int
+
+	def __init__(self, player: Player, solution: Solution, skipped_players: int):
+		self.player = player
+		self.solution = solution
+		self.skipped_players = skipped_players
+
 class Director:
 	
 	## static
@@ -50,8 +63,8 @@ class Director:
 	winner: Player
 	game_status: GameStatus
 	end_game_lock: Lock
-
-	active_player: Player
+	_event_handlers: Dict[GameEvent, List[Callable]]
+	active_player: Player	
 
 	def __init__(self, end_game_lock: Lock, players: List[Player]):
 		self.player_by_character = dict()
@@ -61,6 +74,13 @@ class Director:
 
 		for p in self.players:
 			p.director = self
+
+		self._event_handlers = dict()
+		for event in GameEvent:
+			self._event_handlers[event] = []
+
+	def register(self, event: GameEvent, func: Callable):
+		self._event_handlers[event].append(func)
 
 	def new_game(self):
 		self.winner = None
@@ -174,11 +194,18 @@ class Director:
 			match = other_player.show_card(solution)
 
 			if match is not None:
+				self._on_guess(player, solution, skipped_players)
 				return (match, skipped_players)
 
 			skipped_players += 1
 
+		self._on_guess(player, solution, skipped_players)
 		return (None, skipped_players)
+
+	def _on_guess(self, player: Player, solution: Solution, skipped_players: int):
+		event = GuessEvent(player, solution, skipped_players)
+		for func in self._event_handlers[GameEvent.GUESS]:
+			func(event)
 
 	def _asking_order(self, player: Player) -> List[Player]:
 		player_index = self.players.index(player)

@@ -151,7 +151,7 @@ class Deck:
 			Card(Weapon.ROPE, CardType.WEAPON),
 			Card(Weapon.WRENCH, CardType.WEAPON),
 			Card(Weapon.LEAD_PIPE, CardType.WEAPON),
-			Card(Weapon.KNIFE, CardType.WEAPON),
+			Card(Weapon.KNIFE, CardType.WEAPON)
 		]
 
 	static_deck = make_deck()

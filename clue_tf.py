@@ -22,7 +22,7 @@ from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.trajectories import trajectory
 from tf_agents.utils import common
 
-from clue_tf_env import ClueCardCategoryEnv
+from clue_tf_env import ClueGameEnv
 
 tf.compat.v1.enable_v2_behavior()
 
@@ -61,7 +61,7 @@ def collect_data(env, policy, buffer, steps):
 ##
 ## Hyperparameters
 ##
-num_iterations = 100 # @param {type:"integer"}
+num_iterations = 50000 # @param {type:"integer"}
 
 initial_collect_steps = 100  # @param {type:"integer"} 
 collect_steps_per_iteration = 1  # @param {type:"integer"}
@@ -82,11 +82,8 @@ eval_interval = 1000  # @param {type:"integer"}
 #train_py_env = suite_gym.load(env_name)
 #eval_py_env = suite_gym.load(env_name)
 
-train_py_env = ClueCardCategoryEnv()
-eval_py_env = ClueCardCategoryEnv()
-
-#train_py_env = CardGameEnv()
-#eval_py_env = CardGameEnv()
+train_py_env = ClueGameEnv()
+eval_py_env = ClueGameEnv()
 
 train_env = tf_py_environment.TFPyEnvironment(train_py_env)
 eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)

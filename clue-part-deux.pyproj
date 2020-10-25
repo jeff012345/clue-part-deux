@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{f8b77ffa-60d7-49e6-ab74-6f911f5ea268}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>clue_tf_eval.py</StartupFile>
+    <StartupFile>clue_tf.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -46,6 +46,9 @@
     </Compile>
     <Compile Include="paths.py" />
     <Compile Include="player.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="stat_tracker.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>

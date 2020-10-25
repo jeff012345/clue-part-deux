@@ -5,10 +5,11 @@ import tensorflow as tf
 import numpy as np
 import math
 
-from Clue import Director, GameStatus
+from Clue import Director, GameStatus, GameEvent, GuessEvent
 from player import Player, ComputerPlayer, PlayerAction
 from ai_players import RLPlayerTrainer, RLPlayer
 from definitions import CardType, Card, Weapon, Character
+from stat_tracker import StatTracker
 
 from threading import Lock
 
@@ -21,6 +22,7 @@ from tf_agents.environments import wrappers
 from tf_agents.trajectories import time_step as ts
 
 tf.compat.v1.enable_v2_behavior()
+tf.keras.backend.set_floatx('float64')
 
 class ClueCardCategoryEnv(py_environment.PyEnvironment):
 
@@ -30,6 +32,7 @@ class ClueCardCategoryEnv(py_environment.PyEnvironment):
     _players: List[Player]
     _clue: Director
     _ai_player: Player
+    _stat_tracker: StatTracker
     
     def __init__(self, eval = False):
         self._num_of_cards = 6 + 6
@@ -43,8 +46,9 @@ class ClueCardCategoryEnv(py_environment.PyEnvironment):
                                                         maximum=self._num_of_combos - 1, 
                                                         name='action')
 
-        self._observation_spec = array_spec.BoundedArraySpec(shape=(self._num_of_cards,), 
-                                                             dtype=np.int32, 
+        obv_cnt = self._num_of_cards + StatTracker.VALUE_COUNT        
+        self._observation_spec = array_spec.BoundedArraySpec(shape=(obv_cnt,), 
+                                                             dtype=np.float64, 
                                                              minimum=0, 
                                                              name='observation')
        
@@ -68,6 +72,7 @@ class ClueCardCategoryEnv(py_environment.PyEnvironment):
 
         end_game_lock = Lock()
         self._clue = Director(end_game_lock, self._players)
+        self._clue.register(GameEvent.GUESS, self._handle_guess_event)
         print("Clue initialized!")
 
     def action_spec(self):
@@ -78,8 +83,9 @@ class ClueCardCategoryEnv(py_environment.PyEnvironment):
 
     def _reset(self):
         #print("new game!")        
-        self._tries = 0        
+        self._tries = 0
         self._episode_ended = False
+        self._stat_tracker = StatTracker(len(self._players))
 
         self._clue.new_game()
 
@@ -88,8 +94,13 @@ class ClueCardCategoryEnv(py_environment.PyEnvironment):
         return ts.restart(self._state)
 
     def _update_state(self):
-        arrs = (self._ai_player.log_book.weapons, self._ai_player.log_book.characters)
-        self._state = np.concatenate(arrs, axis=None)
+        arrs = (
+            self._ai_player.log_book.weapons, \
+            self._ai_player.log_book.characters, \
+            self._stat_tracker.stat_array() \
+        )
+        state = np.concatenate(arrs, axis=None)#.astype(np.float32)
+        self._state = state
 
     def _step(self, action):
         if self._episode_ended:
@@ -160,6 +171,9 @@ class ClueCardCategoryEnv(py_environment.PyEnvironment):
         self._ai_player.make_guess()
         self._clue.next_player()
 
+    def _handle_guess_event(self, event: GuessEvent):
+        if event.player != self._ai_player:
+            self._stat_tracker.log_guess(event.solution, event.skipped_players)
 
 if __name__ == "__main__":
     environment = ClueCardCategoryEnv()
