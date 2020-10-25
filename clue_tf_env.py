@@ -24,7 +24,7 @@ from tf_agents.trajectories import time_step as ts
 tf.compat.v1.enable_v2_behavior()
 tf.keras.backend.set_floatx('float64')
 
-class ClueCardCategoryEnv(py_environment.PyEnvironment):
+class ClueGameEnv(py_environment.PyEnvironment):
 
     _max_tries: int
     _num_of_cards: int
@@ -99,8 +99,7 @@ class ClueCardCategoryEnv(py_environment.PyEnvironment):
             self._ai_player.log_book.characters, \
             self._stat_tracker.stat_array() \
         )
-        state = np.concatenate(arrs, axis=None)#.astype(np.float32)
-        self._state = state
+        self._state = np.concatenate(arrs, axis=None)
 
     def _step(self, action):
         if self._episode_ended:
