@@ -4,6 +4,7 @@ from typing import List
 import tensorflow as tf
 import numpy as np
 import math
+import collections
 
 from Clue import Director, GameStatus, GameEvent, GuessEvent
 from player import Player, ComputerPlayer, PlayerAction
@@ -40,7 +41,7 @@ class ClueGameEnv(py_environment.PyEnvironment):
 
         self._max_tries = self._num_of_combos * 2
 
-        self._action_spec = array_spec.BoundedArraySpec(shape=(1,), 
+        self._action_spec = array_spec.BoundedArraySpec(shape=(), 
                                                         dtype=np.int32, 
                                                         minimum=0, 
                                                         maximum=self._num_of_combos - 1, 
@@ -115,8 +116,15 @@ class ClueGameEnv(py_environment.PyEnvironment):
             self._episode_ended = True            
             return ts.termination(self._state, self._calc_reward())
         
-        # make a guess        
-        self._guess(action[0])
+        try:
+            # make a guess
+            if len(action.shape) == 0:
+                #print(action)
+                self._guess(action)
+            else:
+                self._guess(action[0])
+        except:
+            raise Exception("wtf?")
 
         self._update_state()
 

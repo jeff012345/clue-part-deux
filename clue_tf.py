@@ -54,10 +54,7 @@ def collect_step(environment, policy, buffer):
 
   # Add trajectory to the replay buffer
   buffer.add_batch(traj)
-
-def collect_data(env, policy, buffer, steps):
-  for _ in range(steps):
-    collect_step(env, policy, buffer)
+ 
 
 ##
 ## Hyperparameters
@@ -65,7 +62,7 @@ def collect_data(env, policy, buffer, steps):
 num_iterations = 100000 # @param {type:"integer"}
 
 initial_collect_steps = 1000  # @param {type:"integer"} 
-collect_steps_per_iteration = 10  # @param {type:"integer"}
+collect_steps_per_iteration = 5  # @param {type:"integer"}
 replay_buffer_max_length = 100000  # @param {type:"integer"}
 
 batch_size = 64  # @param {type:"integer"}
@@ -78,7 +75,7 @@ min_q_value = -144  # @param {type:"integer"}
 max_q_value = -1  # @param {type:"integer"}
 n_step_update = 2  # @param {type:"integer"}
 
-num_eval_episodes = 20  # @param {type:"integer"}
+num_eval_episodes = 30  # @param {type:"integer"}
 eval_interval = 1000  # @param {type:"integer"}
 
 fc_layer_params = (100,)
@@ -135,9 +132,6 @@ agent.initialize()
 eval_policy = agent.policy
 collect_policy = agent.collect_policy
 
-random_policy = random_tf_policy.RandomTFPolicy(train_env.time_step_spec(),
-                                                train_env.action_spec())
-
 ##
 ## replay buffer
 ##
@@ -146,7 +140,6 @@ replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
     data_spec=agent.collect_data_spec,
     batch_size=train_env.batch_size,
     max_length=replay_buffer_max_length)
-
 
 ## create the checkpointer
 checkpoint_dir = os.path.join(".", 'checkpoint')
@@ -159,17 +152,22 @@ train_checkpointer = common.Checkpointer(
     global_step=train_step_counter
 )
 
-if os.path.isdir(checkpoint_dir) and len(os.listdir(checkpoint_dir)) != 0:
-    train_checkpointer.initialize_or_restore()
-    train_step_counter = tf.compat.v1.train.get_global_step()
-    print("loading from checkpoint")  
+#if os.path.isdir(checkpoint_dir) and len(os.listdir(checkpoint_dir)) != 0:
+#    train_checkpointer.initialize_or_restore()
+#    train_step_counter = tf.compat.v1.train.get_global_step()
+#    print("loading from checkpoint")  
 
 #print(agent.collect_data_spec)
 #print(agent.collect_data_spec._fields)
 
 ## collect data for replay buffer
 print("Collect Data")
-collect_data(train_env, random_policy, replay_buffer, initial_collect_steps)
+
+random_policy = random_tf_policy.RandomTFPolicy(train_env.time_step_spec(),
+                                                train_env.action_spec())
+
+for _ in range(initial_collect_steps):
+  collect_step(train_env, random_policy, replay_buffer)
 
 dataset = replay_buffer.as_dataset(
     num_parallel_calls=3,
@@ -194,16 +192,18 @@ for _ in range(num_iterations):
 
     # Collect a few steps using collect_policy and save to the replay buffer.
     #print("Train: iteration")
-    collect_data(train_env, agent.collect_policy, replay_buffer, collect_steps_per_iteration)
+    for _ in range(collect_steps_per_iteration):
+        collect_step(train_env, agent.collect_policy, replay_buffer)
+    #collect_data(train_env, agent.collect_policy, replay_buffer, collect_steps_per_iteration)
 
     # Sample a batch of data from the buffer and update the agent's network.
     experience, unused_info = next(iterator)
-    train_loss = agent.train(experience).loss
+    train_loss = agent.train(experience)
 
     step = agent.train_step_counter.numpy()
 
     if step % log_interval == 0:
-        print('step = {0}: loss = {1}'.format(step, train_loss))
+        print('step = {0}: loss = {1}'.format(step, train_loss.loss))
     
     if step % eval_interval == 0:
         avg_return = compute_avg_return(eval_env, agent.policy, num_eval_episodes)
