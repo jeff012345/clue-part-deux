@@ -59,7 +59,7 @@ def collect_step(environment, policy, buffer):
 ##
 ## Hyperparameters
 ##
-num_iterations = 100000 # @param {type:"integer"}
+num_iterations = 300000 # @param {type:"integer"}
 
 initial_collect_steps = 1000  # @param {type:"integer"} 
 collect_steps_per_iteration = 5  # @param {type:"integer"}
@@ -71,8 +71,8 @@ gamma = 0.99
 log_interval = 200  # @param {type:"integer"}
 
 num_atoms = 51  # @param {type:"integer"}
-min_q_value = -144  # @param {type:"integer"}
-max_q_value = -1  # @param {type:"integer"}
+min_q_value = ClueGameEnv.MIN_Q  # @param {type:"integer"}
+max_q_value = ClueGameEnv.MAX_Q # @param {type:"integer"}
 n_step_update = 2  # @param {type:"integer"}
 
 num_eval_episodes = 30  # @param {type:"integer"}
@@ -152,10 +152,10 @@ train_checkpointer = common.Checkpointer(
     global_step=train_step_counter
 )
 
-#if os.path.isdir(checkpoint_dir) and len(os.listdir(checkpoint_dir)) != 0:
-#    train_checkpointer.initialize_or_restore()
-#    train_step_counter = tf.compat.v1.train.get_global_step()
-#    print("loading from checkpoint")  
+if os.path.isdir(checkpoint_dir) and len(os.listdir(checkpoint_dir)) != 0:
+    train_checkpointer.initialize_or_restore()
+    train_step_counter = tf.compat.v1.train.get_global_step()
+    print("loading from checkpoint")  
 
 #print(agent.collect_data_spec)
 #print(agent.collect_data_spec._fields)

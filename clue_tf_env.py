@@ -27,14 +27,17 @@ tf.keras.backend.set_floatx('float64')
 
 class ClueGameEnv(py_environment.PyEnvironment):
 
+    MIN_Q = -12
+    MAX_Q = 0
+
     _max_tries: int
     _num_of_cards: int
     _tries: int
     _players: List[Player]
     _clue: Director
     _ai_player: Player
-    _stat_tracker: StatTracker
-    
+    _stat_tracker: StatTracker   
+
     def __init__(self, eval = False):
         self._num_of_cards = 6 + 6
         self._num_of_combos = 6 * 6
@@ -116,15 +119,7 @@ class ClueGameEnv(py_environment.PyEnvironment):
             self._episode_ended = True            
             return ts.termination(self._state, self._calc_reward())
         
-        try:
-            # make a guess
-            if len(action.shape) == 0:
-                #print(action)
-                self._guess(action)
-            else:
-                self._guess(action[0])
-        except:
-            raise Exception("wtf?")
+        self._guess(action)
 
         self._update_state()
 
@@ -135,12 +130,18 @@ class ClueGameEnv(py_environment.PyEnvironment):
 
     # max reward = -1 * num_of_cards
     def _calc_reward(self) -> int:
+        #unknown = 0
+        #for (key, value) in self._ai_player.log_book.log_book.items():
+        #    if key.type != CardType.ROOM and value is False:
+        #        unknown += 1
+        #return unknown
+
         if self._clue.winner == self._ai_player:
-            # AI player won
-            return -1 * self._tries
-            
-        # AI player lost the game, make this worse
-        return -2 * self._max_tries
+            return 0
+
+        log_book = self._ai_player.log_book
+        reward = (np.sum(log_book.weapons) + np.sum(log_book.characters)) - 12
+        return int(reward)
 
     def _take_turns_until_guess(self):
         player_action = None
