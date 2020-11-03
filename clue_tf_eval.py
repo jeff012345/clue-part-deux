@@ -2,18 +2,18 @@ import tensorflow as tf
 
 import os
 
-from clue_tf_env import ClueCardCategoryEnv
+from clue_tf_env import ClueGameEnv
 
 from tf_agents.policies import policy_saver
 from tf_agents.environments import tf_py_environment
 
 tf.compat.v1.enable_v2_behavior()
 
-eval_py_env = ClueCardCategoryEnv(eval = True)
+eval_py_env = ClueGameEnv(eval = True)
 eval_tf_env = tf_py_environment.TFPyEnvironment(eval_py_env)
 
 
-policy_dir = os.path.join("PoE-12-card-2", "policy")
+policy_dir = os.path.join("models", "c51-5", "policy")
 saved_policy = tf.compat.v2.saved_model.load(policy_dir)
 
 
