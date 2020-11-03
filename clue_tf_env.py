@@ -23,7 +23,7 @@ from tf_agents.environments import wrappers
 from tf_agents.trajectories import time_step as ts
 
 tf.compat.v1.enable_v2_behavior()
-tf.keras.backend.set_floatx('float64')
+#tf.keras.backend.set_floatx('float64')
 
 class ClueGameEnv(py_environment.PyEnvironment):
 
@@ -105,7 +105,7 @@ class ClueGameEnv(py_environment.PyEnvironment):
             self._ai_player.log_book.characters, \
             self._stat_tracker.stat_array() \
         )
-        self._state = np.concatenate(arrs, axis=None)
+        self._state = np.concatenate(arrs, axis=None)#.astype(np.float64)
 
     def _step(self, action):
         if self._episode_ended:
@@ -133,21 +133,21 @@ class ClueGameEnv(py_environment.PyEnvironment):
     # max reward = -1 * num_of_cards
     def _calc_reward(self) -> int:
         # newer
-        if self._clue.winner == self._ai_player:
-            return 0
+        #if self._clue.winner == self._ai_player:
+        #    return 0
         
-        #better if you find them in fewer turns. Points per turn per card?
-        log_book = self._ai_player.log_book
-        reward = (np.sum(log_book.weapons) + np.sum(log_book.characters)) - 12
-        return int(reward) * 10
+        ##better if you find them in fewer turns. Points per turn per card?
+        #log_book = self._ai_player.log_book
+        #reward = (np.sum(log_book.weapons) + np.sum(log_book.characters)) - 12
+        #return int(reward) * 10
 
         # original
-        #if self._clue.winner == self._ai_player:
-        #    # AI player won
-        #    return -1 * self._tries
+        if self._clue.winner == self._ai_player:
+            # AI player won
+            return -1 * self._tries
             
-        ## AI player lost the game, make this worse
-        #return -2 * self._max_tries
+        # AI player lost the game, make this worse
+        return -2 * self._max_tries
 
     def _take_turns_until_guess(self):
         player_action = None
