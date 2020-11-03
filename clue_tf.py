@@ -59,7 +59,7 @@ def collect_step(environment, policy, buffer):
 ##
 ## Hyperparameters
 ##
-num_iterations = 50000 # @param {type:"integer"}
+num_iterations = 100000 # @param {type:"integer"}
 
 initial_collect_steps = 1000  # @param {type:"integer"} 
 collect_steps_per_iteration = 5  # @param {type:"integer"}
@@ -78,7 +78,7 @@ n_step_update = 2  # @param {type:"integer"}
 num_eval_episodes = 30  # @param {type:"integer"}
 eval_interval = 1000  # @param {type:"integer"}
 
-fc_layer_params = (1000,)
+fc_layer_params = (1000,1000)
 
 ##
 ## environment setup
