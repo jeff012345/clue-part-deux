@@ -27,6 +27,8 @@ tf.keras.backend.set_floatx('float64')
 
 class ClueGameEnv(py_environment.PyEnvironment):
 
+    #MIN_Q = -144
+    #MAX_Q = -1
     MIN_Q = -12
     MAX_Q = 0
 
@@ -130,18 +132,22 @@ class ClueGameEnv(py_environment.PyEnvironment):
 
     # max reward = -1 * num_of_cards
     def _calc_reward(self) -> int:
-        #unknown = 0
-        #for (key, value) in self._ai_player.log_book.log_book.items():
-        #    if key.type != CardType.ROOM and value is False:
-        #        unknown += 1
-        #return unknown
-
+        # newer
         if self._clue.winner == self._ai_player:
             return 0
-
+        
+        #better if you find them in fewer turns. Points per turn per card?
         log_book = self._ai_player.log_book
         reward = (np.sum(log_book.weapons) + np.sum(log_book.characters)) - 12
-        return int(reward)
+        return int(reward) * 10
+
+        # original
+        #if self._clue.winner == self._ai_player:
+        #    # AI player won
+        #    return -1 * self._tries
+            
+        ## AI player lost the game, make this worse
+        #return -2 * self._max_tries
 
     def _take_turns_until_guess(self):
         player_action = None
