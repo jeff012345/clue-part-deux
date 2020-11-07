@@ -129,7 +129,7 @@ class Director:
 
 	def player_take_turn(self, player: Player):
 		player.take_turn()
-		time.sleep(1)
+		#time.sleep(1)
 
 		if self._end_game():
 			self.game_status = GameStatus.ENDED
@@ -230,14 +230,14 @@ class Director:
 		if self.solution.is_match(solution):
 			self.winner = player
 			self.game_status = GameStatus.ENDED
-			return true
+			return True
 		else:
 			## player loses and doesn't get any more turns
 			self.remaining_players.remove(player)
 			print('this shouldn\'t happen')
 
 			if isinstance(player, HumanPlayer):
-				return false
+				return False
 			raise Exception()
 	
 	def _end_game(self):

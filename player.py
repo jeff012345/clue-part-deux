@@ -4,6 +4,7 @@ from definitions import *
 from paths import RoomPath, Board
 import random
 import numpy as np
+from threading import Lock
 
 class PlayerAction(Enum):
 	ACCUSATION = 1
@@ -189,7 +190,7 @@ class Player:
 		return self.pick_card_to_show(match)
 
 	def pick_card_to_show(self, match: Solution) -> Solution:
-		raise Exception('Not Implemented')	
+		raise Exception('Not Implemented')
 
 	def take_turn(self, action: PlayerAction = None):		
 		raise Exception('Not Implemented')
@@ -346,7 +347,7 @@ class NaiveComputerPlayer(Player):
 
 class HumanPlayer(Player):
 
-	_on_turn: Callable
+	_on_turn: Callable[[Lock]]
 	_use_roll: Callable[[int]]
 	_on_pick_card_to_show: Callable[[Solution], Card]
 
@@ -370,7 +371,14 @@ class HumanPlayer(Player):
 		return solution
 
 	def take_turn(self, action: PlayerAction = None):
+		turn_lock = Lock()
+		turn_lock.acquire()
+
 		self._on_turn()
+
+		# wait for UI to release lock
+		turn_lock.acquire()
+		# needs to block until player does something
 
 	def take_roll(self):
 		roll = roll_dice()

@@ -1,6 +1,6 @@
 from typing import List, Set, Dict, Tuple, Optional
 import pygame
-from player import Player
+from player import Player, HumanPlayer
 from Clue import Director, GameStatus
 from threading import Lock
 from paths import room_coorindates
@@ -43,7 +43,7 @@ class PlayerPiece:
         pos = scale_position(pos)
         pygame.draw.circle(self.game_display, player_colors[self.player.character], pos, piece_radius)
 
-def run(director: Director, run_game_lock: Lock, end_game_lock: Lock):
+def run(director: Director, run_game_lock: Lock, end_game_lock: Lock, player: HumanPlayer):
     pygame.init()
 
     display_width = 750

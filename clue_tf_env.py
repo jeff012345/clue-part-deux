@@ -37,7 +37,7 @@ class ClueGameEnv(py_environment.PyEnvironment):
     _tries: int
     _players: List[Player]
     _clue: Director
-    _ai_player: Player
+    _ai_player: RLPlayer
     _stat_tracker: StatTracker   
 
     def __init__(self, eval = False, director = None):

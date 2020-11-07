@@ -12,6 +12,8 @@ from clue_tf_env import ClueGameEnv
 run_game_lock = threading.Lock()
 end_game_lock = threading.Lock()
 
+
+
 players = [
 	ComputerPlayer(),
 	ComputerPlayer(),
