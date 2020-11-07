@@ -1,25 +1,30 @@
 import threading
 import sys
+import os
 import traceback
+
 import game_board
 import Clue
 from player import ComputerPlayer
+from ai_players import RLPlayer
+from clue_tf_env import ClueGameEnv
 
 run_game_lock = threading.Lock()
 end_game_lock = threading.Lock()
 
-director = Clue.Director(end_game_lock)
-
 players = [
-	ComputerPlayer(director),
-	ComputerPlayer(director),
-	ComputerPlayer(director),
-	ComputerPlayer(director),
-	ComputerPlayer(director),
-	ComputerPlayer(director)
+	ComputerPlayer(),
+	ComputerPlayer(),
+	ComputerPlayer(),
+	ComputerPlayer(),
+	ComputerPlayer(),
+	RLPlayer()
 ]
 
-def run_board():
+director = Clue.Director(end_game_lock, players)
+
+# runs the UI game board
+def run_board():    
     try:
         run_game_lock.acquire()
         game_board.run(director, run_game_lock, end_game_lock)
@@ -29,13 +34,34 @@ def run_board():
         traceback.print_tb(err.__traceback__)
         raise err
 
+# runs the game director and TF agent
+def run_game():    
+    import tensorflow as tf
+    from tf_agents.environments import tf_py_environment
+    from tf_agents.policies import policy_saver
 
-def run_game():
+    tf.compat.v1.enable_v2_behavior()
+
+    eval_py_env = ClueGameEnv(director = director)
+    eval_tf_env = tf_py_environment.TFPyEnvironment(eval_py_env)
+
+    policy_dir = os.path.join("policy-reinforce")
+    saved_policy = tf.compat.v2.saved_model.load(policy_dir)
+
     try:
-        while not end_game_lock.locked():
-            run_game_lock.acquire()
-            Clue.new_game(director)
-            run_game_lock.release()
+        time_step = eval_tf_env.reset()
+
+        run_game_lock.acquire()
+
+        while not end_game_lock.locked() and not time_step.is_last():
+            action_step = saved_policy.action(time_step)
+            time_step = eval_tf_env.step(action_step.action)            
+            
+        run_game_lock.release()
+
+        #game is done
+        end_game_lock.acquire()
+
     except Exception as err:
         end_game_lock.acquire()
 

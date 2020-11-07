@@ -40,7 +40,7 @@ class ClueGameEnv(py_environment.PyEnvironment):
     _ai_player: Player
     _stat_tracker: StatTracker   
 
-    def __init__(self, eval = False):
+    def __init__(self, eval = False, director = None):
         self._num_of_cards = 6 + 6
         self._num_of_combos = 6 * 6
 
@@ -58,27 +58,36 @@ class ClueGameEnv(py_environment.PyEnvironment):
                                                              minimum=0, 
                                                              name='observation')
        
-        self.__init_clue__(eval)
+        self.__init_clue__(eval, director)
         self._reset()
 
-    def __init_clue__(self, eval):
-        if eval:
-            self._ai_player = RLPlayer()
+    def __init_clue__(self, eval, director):
+        if director is not None:
+            # initialize from a existing clue director instance
+            self._clue = director
+            self._players = self._clue.players
+            self._ai_player = next(p for p in self._players if isinstance(p, RLPlayer))
         else:
-            self._ai_player = RLPlayerTrainer()
+            if eval:
+                self._ai_player = RLPlayer()
+            else:
+                self._ai_player = RLPlayerTrainer()
 
-        self._players = [
-		    ComputerPlayer(),
-		    ComputerPlayer(),
-		    ComputerPlayer(),
-		    ComputerPlayer(),
-		    ComputerPlayer(),
-		    self._ai_player
-	    ]
+            self._players = [
+		        ComputerPlayer(),
+		        ComputerPlayer(),
+		        ComputerPlayer(),
+		        ComputerPlayer(),
+		        ComputerPlayer(),
+		        self._ai_player
+	        ]
 
-        end_game_lock = Lock()
-        self._clue = Director(end_game_lock, self._players)
+            end_game_lock = Lock()
+            self._clue = Director(end_game_lock, self._players)
+
+        # for the stat tracker
         self._clue.register(GameEvent.GUESS, self._handle_guess_event)
+
         print("Clue initialized!")
 
     def action_spec(self):
@@ -88,14 +97,15 @@ class ClueGameEnv(py_environment.PyEnvironment):
         return self._observation_spec
 
     def _reset(self):
-        #print("new game!")        
+        # Game Status = ???        
         self._tries = 0
         self._episode_ended = False
         self._stat_tracker = StatTracker(len(self._players))
 
         self._clue.new_game()
-
         self._update_state()
+
+        self._clue.game_status = GameStatus.RUNNING
 
         return ts.restart(self._state)
 

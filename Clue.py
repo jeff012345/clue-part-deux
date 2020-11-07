@@ -9,6 +9,7 @@ from threading import Lock
 import time
 
 class GameStatus(Enum):
+	STARTING = 0
 	INITIALIZED = 1
 	READY = 2
 	RUNNING = 3
@@ -67,6 +68,7 @@ class Director:
 	active_player: Player	
 
 	def __init__(self, end_game_lock: Lock, players: List[Player]):
+		self.game_status = GameStatus.STARTING
 		self.player_by_character = dict()
 
 		self.end_game_lock = end_game_lock
@@ -127,6 +129,7 @@ class Director:
 
 	def player_take_turn(self, player: Player):
 		player.take_turn()
+		time.sleep(1)
 
 		if self._end_game():
 			self.game_status = GameStatus.ENDED
@@ -278,16 +281,22 @@ def main():
 
 def asfdlkjasf():
 
-	eval_py_env = ClueCardCategoryEnv()
+	eval_py_env = ClueGameEnv(eval = True)
+	eval_tf_env = tf_py_environment.TFPyEnvironment(eval_py_env)
+
+	policy_dir = os.path.join("policy-reinforce")
+	saved_policy = tf.compat.v2.saved_model.load(policy_dir)
+
 	num_episodes = 3
 	for _ in range(num_episodes):
 		time_step = eval_tf_env.reset()
 
 		while not time_step.is_last():
-			action_step = policy.action(time_step)
+			action_step = saved_policy.action(time_step)
 			time_step = eval_tf_env.step(action_step.action)
 
-
+		if eval_py_env._clue.winner == eval_py_env._ai_player:
+			wins += 1
 
 
 if __name__ == "__main__":

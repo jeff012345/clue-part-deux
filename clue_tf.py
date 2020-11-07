@@ -72,12 +72,12 @@ def collect_episode(environment, policy, num_episodes):
     replay_buffer.add_batch(traj)
 
     if traj.is_boundary():
-      episode_counter += 1
+        episode_counter += 1
 
 ##
 ## Hyperparameters
 ##
-num_iterations = 5000 # @param {type:"integer"}
+num_iterations = 15000 # @param {type:"integer"}
 collect_episodes_per_iteration = 15 # @param {type:"integer"}
 replay_buffer_capacity = 15000 # @param {type:"integer"}
 
