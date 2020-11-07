@@ -176,7 +176,7 @@ class Director:
 		self.active_player = self.players[0]
 
 	## store the order somewhere so it doesn't need to be calculated each time
-	def make_guess(self, player: Player, solution: Solution) -> Solution:
+	def make_guess(self, player: Player, solution: Solution) -> Tuple[Solution, int]:
 		if not solution.is_complete():
 			print('Incomplete guess')
 			print(solution)
@@ -223,17 +223,21 @@ class Director:
 		else:
 			return self.players[player_index+1:] + self.players[0:player_index]
 
-	def make_accusation(self, player: Player, solution: Solution):
+	def make_accusation(self, player: Player, solution: Solution) -> bool:
 		#print(str(player.character) + " is making an accusation")
 		#print(solution)
 
 		if self.solution.is_match(solution):
 			self.winner = player
 			self.game_status = GameStatus.ENDED
+			return true
 		else:
 			## player loses and doesn't get any more turns
 			self.remaining_players.remove(player)
 			print('this shouldn\'t happen')
+
+			if isinstance(player, HumanPlayer):
+				return false
 			raise Exception()
 	
 	def _end_game(self):
