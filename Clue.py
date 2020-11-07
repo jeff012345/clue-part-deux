@@ -256,11 +256,11 @@ def main():
 	ai_player = RLPlayer()	
 
 	players = [
-		ComputerPlayer(),
-		ComputerPlayer(),
-		ComputerPlayer(),
-		ComputerPlayer(),
-		ComputerPlayer(),
+		NaiveComputerPlayer(),
+		NaiveComputerPlayer(),
+		NaiveComputerPlayer(),
+		NaiveComputerPlayer(),
+		NaiveComputerPlayer(),
 		ai_player
 	]
 

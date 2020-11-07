@@ -1,7 +1,7 @@
 from typing import List
 
 import os
-from player import ComputerPlayer
+from player import NaiveComputerPlayer
 from definitions import Card, Room, CardType, Character
 
 import tensorflow as tf
@@ -9,7 +9,7 @@ from tf_agents.trajectories import time_step as ts
 
 tf.compat.v1.enable_v2_behavior()
 
-class RLPlayer(ComputerPlayer):	
+class RLPlayer(NaiveComputerPlayer):	
 		
 	weapon_guess: Card
 	character_guess: Card

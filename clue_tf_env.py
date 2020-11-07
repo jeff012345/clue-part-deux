@@ -7,7 +7,7 @@ import math
 import collections
 
 from Clue import Director, GameStatus, GameEvent, GuessEvent
-from player import Player, ComputerPlayer, PlayerAction
+from player import Player, NaiveComputerPlayer, PlayerAction
 from ai_players import RLPlayerTrainer, RLPlayer
 from definitions import CardType, Card, Weapon, Character
 from stat_tracker import StatTracker
@@ -74,11 +74,11 @@ class ClueGameEnv(py_environment.PyEnvironment):
                 self._ai_player = RLPlayerTrainer()
 
             self._players = [
-		        ComputerPlayer(),
-		        ComputerPlayer(),
-		        ComputerPlayer(),
-		        ComputerPlayer(),
-		        ComputerPlayer(),
+		        NaiveComputerPlayer(),
+		        NaiveComputerPlayer(),
+		        NaiveComputerPlayer(),
+		        NaiveComputerPlayer(),
+		        NaiveComputerPlayer(),
 		        self._ai_player
 	        ]
 
