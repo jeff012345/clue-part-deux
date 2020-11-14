@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{f8b77ffa-60d7-49e6-ab74-6f911f5ea268}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>clue_tf.py</StartupFile>
+    <StartupFile>game_board.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -23,6 +23,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="requirements.txt" />
+    <Content Include="theme.json" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ai_players.py">
@@ -41,11 +42,20 @@
     <Compile Include="game_board.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="game_board_util.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="log_book_ui.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="main.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="paths.py" />
     <Compile Include="player.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="start_turn_menu.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="stat_tracker.py">

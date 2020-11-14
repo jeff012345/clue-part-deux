@@ -5,21 +5,19 @@ import traceback
 
 import game_board
 import Clue
-from player import ComputerPlayer
+from player import NaiveComputerPlayer, HumanPlayer
 from ai_players import RLPlayer
 from clue_tf_env import ClueGameEnv
 
 run_game_lock = threading.Lock()
 end_game_lock = threading.Lock()
 
-
-
 players = [
-	ComputerPlayer(),
-	ComputerPlayer(),
-	ComputerPlayer(),
-	ComputerPlayer(),
-	ComputerPlayer(),
+	NaiveComputerPlayer(),
+	NaiveComputerPlayer(),
+	NaiveComputerPlayer(),
+	NaiveComputerPlayer(),
+	NaiveComputerPlayer(),
 	RLPlayer()
 ]
 
@@ -29,7 +27,7 @@ director = Clue.Director(end_game_lock, players)
 def run_board():    
     try:
         run_game_lock.acquire()
-        game_board.run(director, run_game_lock, end_game_lock)
+        game_board.run(director, run_game_lock, end_game_lock, None)
     except Exception as err:
         end_game_lock.acquire()
 
@@ -69,7 +67,6 @@ def run_game():
 
         traceback.print_tb(err.__traceback__)
         raise err
-
 
 if __name__ == "__main__":
     thread1 = threading.Thread(target=run_board)

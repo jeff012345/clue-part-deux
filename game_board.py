@@ -1,92 +1,108 @@
 from typing import List, Set, Dict, Tuple, Optional
 import pygame
-from player import Player, HumanPlayer
+import pygame_gui
+
+from player import Player, HumanPlayer, NaiveComputerPlayer
 from Clue import Director, GameStatus
 from threading import Lock
-from paths import room_coorindates
-from definitions import Character
+from log_book_ui import LogBookPanel
+from start_turn_menu import StartTurnPanel, PlayerRoll
+from game_board_util import scale_position, PlayerPiece
 
 black = (0,0,0)
 white = (255,255,255)
 red = (255,0,0)
 
-top_pad = 17.5
-left_pad = 20
-piece_radius = 12
+log_book_width = LogBookPanel.PANEL_WIDTH
+board_width = 800
 
-player_colors = dict()
-player_colors[Character.MRS_WHITE] = (255, 255, 255)
-player_colors[Character.MRS_PEACOCK] = (0, 0, 255)
-player_colors[Character.MISS_SCARLET] = (255, 0, 0)
-player_colors[Character.COLONEL_MUSTARD] = (255, 255, 0)
-player_colors[Character.MR_GREEN] = (0, 255, 0)
-player_colors[Character.PROFESSOR_PLUM] = (128, 0, 128)
-
-def scale_position(pos: Tuple[int, int]) -> Tuple[int, int]:
-    row = int(round(top_pad + (pos[0] * 28) + piece_radius))
-    col = int(round(left_pad + (pos[1] * 29.583333) + piece_radius))
-    return (col, row)
-
-class PlayerPiece:
-
-    player: Player
-
-    def __init__(self, player: Player, game_display):
-        self.player = player
-        self.game_display = game_display
-
-    def draw(self):
-        pos = self.player.position
-        if self.player.room is not None:
-            pos = room_coorindates[self.player.room]
-        
-        pos = scale_position(pos)
-        pygame.draw.circle(self.game_display, player_colors[self.player.character], pos, piece_radius)
+display_width = log_book_width + board_width
+display_height = 1000
 
 def run(director: Director, run_game_lock: Lock, end_game_lock: Lock, player: HumanPlayer):
-    pygame.init()
+    pygame.init()   
 
-    display_width = 750
-    display_height = 800
-
-    game_display = pygame.display.set_mode((display_width, display_height))
     pygame.display.set_caption('Clue')
+    game_display = pygame.display.set_mode((display_width, display_height))    
+
+    manager = pygame_gui.UIManager((display_width, display_height), 'theme.json')
 
     clock = pygame.time.Clock()
-    crashed = False
+    crashed = False   
 
     # load images
     board_img = pygame.image.load('assets/board.jpg')
 
-    player_pieces: List[PlayerPiece] = list(map(lambda p: PlayerPiece(p, game_display), director.players))
-    run_game_lock.release()
+    start_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 275), (100, 50)),
+                                             text='Start Game',
+                                             manager=manager)
+
+    board_surface = pygame.Surface((board_width, 800))
+    
+    player_pieces: List[PlayerPiece] = list(map(lambda p: PlayerPiece(p, board_surface), director.players))
+
+    player_roll = PlayerRoll(board_surface)
+    log_book_ui = LogBookPanel(manager)
+    start_turn_menu = StartTurnPanel(game_display, manager, display_width, display_height, player_roll)
 
     while not crashed and end_game_lock.locked() is False:
+        time_delta = clock.tick(60) / 1000.0
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 crashed = True
                 end_game_lock.acquire()
 
-            #if event.type == pygame.KEYDOWN:
-            #    if event.key == pygame.K_SPACE and run_game_lock.locked() is True:
-            #        run_game_lock.release()
-
-            #print(event)
+                if run_game_lock.locked():
+                    run_game_lock.release()    
+            
+            elif event.type == pygame.USEREVENT:
+                 if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
+                     if event.ui_element == start_button:
+                         start_button.hide()
+                         start_turn_menu.show()
+                         #run_game_lock.release()
+            
+            start_turn_menu.process_events(event)
+            log_book_ui.process_events(event)
+            manager.process_events(event)
+            player_roll.process_events(event)
     
         game_display.fill(white)
-    
-        board_rect = game_display.blit(board_img, (0, 0))
+                
+        board_surface.blit(board_img, (0, 0))  
+        player_roll.draw()
 
         if director.game_status == GameStatus.RUNNING:
             for player in player_pieces:
                 player.draw()
 
+        game_display.blit(board_surface, (log_book_width, 0))        
+
+        manager.update(time_delta)
+        manager.draw_ui(game_display)     
+
         pygame.display.update()
-        clock.tick(60)
                 
 
     pygame.quit()
 
 
 
+if __name__ == "__main__":
+    human = NaiveComputerPlayer()# HumanPlayer()
+
+    players = [
+		NaiveComputerPlayer(),
+		NaiveComputerPlayer(),
+		NaiveComputerPlayer(),
+		NaiveComputerPlayer(),
+		NaiveComputerPlayer(),
+		human
+	]
+
+    run_game_lock = Lock()
+    end_game_lock = Lock()
+    director = Director(end_game_lock, players)	
+    
+    run(director, run_game_lock, end_game_lock, human)
