@@ -391,6 +391,10 @@ class HumanPlayer(Player):
 		print("HumanPlayer: " + str(self.character) + " taking turn")
 		self.on_turn(HumanTurn())
 
+	def move(self, position: Tuple[int, int]):
+		
+		pass
+
 	def accuse(self, solution: Solution) -> bool:
 		return self.director.make_accusation(self, self.log_book.solution)
 

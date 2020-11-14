@@ -51,11 +51,12 @@
     <Compile Include="main.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="panels.py" />
     <Compile Include="paths.py" />
     <Compile Include="player.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="start_turn_menu.py">
+    <Compile Include="player_roll.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="stat_tracker.py">

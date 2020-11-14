@@ -6,8 +6,9 @@ from player import *
 from Clue import Director, GameStatus
 from threading import Lock
 from log_book_ui import LogBookPanel
-from start_turn_menu import StartTurnPanel, PlayerRoll, MatchPickPanel
+from panels import *
 from game_board_util import scale_position, PlayerPiece
+from player_roll import PlayerRoll
 
 black = (0,0,0)
 white = (255,255,255)
@@ -45,8 +46,10 @@ def run(director: Director, run_game_lock: Lock, end_game_lock: Lock, human: Hum
 
     player_roll = PlayerRoll(board_surface, human, on_end_turn)
     log_book_ui = LogBookPanel(manager)
-    start_turn_menu = StartTurnPanel(game_display, manager, display_width, display_height, player_roll)
+    guess_panel = GuessPanel(manager, display_width, display_height, human, on_end_turn)
+    start_turn_menu = StartTurnPanel(manager, display_width, display_height, player_roll, guess_panel, human)
     match_pick_panel = MatchPickPanel(manager, display_width, display_height, human, on_end_turn)
+    
 
     human.on_turn = lambda turn: on_play_turn(turn, turn_lock, start_turn_menu, match_pick_panel)
 
@@ -69,6 +72,7 @@ def run(director: Director, run_game_lock: Lock, end_game_lock: Lock, human: Hum
             manager.process_events(event)
             player_roll.process_events(event)
             match_pick_panel.process_events(event)
+            guess_panel.process_events(event)
     
         game_display.fill(white)
                 
