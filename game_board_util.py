@@ -3,6 +3,7 @@ import pygame
 
 from player import Player
 from definitions import Character
+from paths import room_coorindates
 
 player_colors = dict()
 player_colors[Character.MRS_WHITE] = (255, 255, 255)

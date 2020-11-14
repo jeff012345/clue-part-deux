@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import List, Set, Dict, Tuple, Optional
 
 import pygame
@@ -5,10 +6,10 @@ import pygame_gui
 from pygame_gui import UIManager
 from pygame_gui.elements import UIPanel, UILabel, UITextBox, UIButton, UIImage
 
-from player import HumanPlayer
+from player import HumanPlayer, PickMatchTurn
 import paths
 from game_board_util import scale_position
-import definitions
+from definitions import roll_dice, Card, Solution
 from log_book_ui import LogBookPanel
 
 class PlayerRoll:
@@ -24,35 +25,28 @@ class PlayerRoll:
 
     player: HumanPlayer
     surface: pygame.Surface
+    on_end_turn: Callable
     _rolling: bool
     _distance: int
     _positions: List[Tuple[int, int]]
     _rects: List[pygame.Rect]
     _drawn_rects: List[pygame.Rect]
 
-    def __init__(self, surface: pygame.Surface):
+    def __init__(self, surface: pygame.Surface, player: HumanPlayer, on_end_turn: Callable):
         self.surface = surface
         self._rolling = False
+        self.player = player
+        self.on_end_turn = on_end_turn
 
     def roll(self):
         self._rolling = True
-        self._distance = definitions.roll_dice()
+        self._distance = roll_dice()
         print("rolled a " + str(self._distance))
 
         self._calculate_positions()
 
-    def draw(self):
-        if not self._rolling:
-            return      
-        
-        #for rect in self._rects:
-        self._drawn_rects = list(map(lambda rect: pygame.draw.rect(self.surface, (120, 120, 120), rect), self._rects))     
-
-        pos = scale_position((4, 7))
-        pygame.draw.circle(self.surface, (0, 0, 0), pos, 12)
-
     def _calculate_positions(self):
-        start = (4, 7)     
+        start = self.player.position
 
         self._positions = []
 
@@ -109,6 +103,12 @@ class PlayerRoll:
 
         self._positions = good_positions
 
+    def draw(self):
+        if not self._rolling:
+            return      
+        
+        self._drawn_rects = list(map(lambda rect: pygame.draw.rect(self.surface, (120, 120, 120), rect), self._rects)) 
+
     def process_events(self, event):
         if not self._rolling:
             return
@@ -126,8 +126,15 @@ class PlayerRoll:
                 i += 1
 
     def _click_move(self, pos):
-        #self.player.move
-        pass
+        self.player.position = pos
+        self._rolling = False
+        self.on_end_turn()
+      
+def create_modal_rect(screen_width: int, screen_height: int, width: int, height: int):
+    top_offset = round((screen_height / 2) - (height / 2))
+    left_offset = round((screen_width / 2) - (width / 2))
+
+    return pygame.Rect((top_offset, left_offset), (width, height))
 
 class StartTurnPanel:
 
@@ -142,11 +149,8 @@ class StartTurnPanel:
         self.width = 300
         self.height = 275
 
-        top_offset = round((screen_height / 2) - (self.height / 2))
-        left_offset = round((screen_width / 2) - (self.width / 2))
-
-        panel_rect = pygame.Rect((top_offset, left_offset), (self.width, self.height))
-        self.panel = UIPanel(panel_rect, 0, manager, element_id='start_turn')
+        rect = create_modal_rect(screen_width, screen_height, self.width, self.height)
+        self.panel = UIPanel(rect, 0, manager, element_id='start_turn')
 
         UILabel(pygame.Rect((0, 10), (self.width, 20)), 
                 "Your Turn", 
@@ -189,3 +193,132 @@ class StartTurnPanel:
             self.hide()
             self.player_roll.roll()           
 
+class MatchPickPanel:
+
+    panel: UIPanel
+    player: HumanPlayer
+    pick: Card
+    on_end_turn: Callable
+    
+    _weapon_button: UIButton
+    _character_button: UIButton
+    _room_button: UIButton
+    _solution: Solution
+
+    def __init__(self, manager: UIManager, screen_width: int, screen_height: int, player: HumanPlayer, \
+            on_end_turn: Callable):
+        self.player = player
+        self.on_end_turn = on_end_turn
+        self._create_panel(manager, screen_width, screen_height)
+   
+    def _create_panel(self, manager: UIManager, screen_width: int, screen_height: int):
+        self.width = 300
+        self.height = 275
+
+        rect = create_modal_rect(screen_width, screen_height, self.width, self.height)
+        self.panel = UIPanel(rect, 0, manager, element_id='match_pick_panel')
+
+        UILabel(pygame.Rect((0, 10), (self.width, 20)), 
+                "Pick a card to show", 
+                manager, 
+                container=self.panel)
+
+        y_offset = 10 + 10
+
+        button_rect = pygame.Rect((50, y_offset + 25), (200, 50))
+        self._weapon_button = UIButton(button_rect, '', manager, container=self.panel)
+
+        y_offset += 25 + 50
+
+        button_rect = pygame.Rect((50, y_offset + 25), (200, 50))
+        self._character_button = UIButton(button_rect, '', manager, container=self.panel)
+
+        y_offset += 25 + 50
+
+        button_rect = pygame.Rect((50, y_offset + 25), (200, 50))
+        self._room_button = UIButton(button_rect, '', manager, container=self.panel)
+
+        self.panel.hide()
+
+    def show(self, turn_data: PickMatchTurn):
+        solution = turn_data.match
+        self._solution = solution
+
+        if solution.weapon is None:            
+            self._weapon_button.disable()
+        else:
+            self._weapon_button.enable()            
+
+        if solution.character is None:            
+            self._character_button.disable()
+        else:
+            self._character_button.enable()
+
+        if solution.room is None:            
+            self._room_button.disable()
+        else:
+            self._room_button.enable()
+
+        self._weapon_button.set_text(str(turn_data.guess.weapon.value.name))
+        self._character_button.set_text(str(turn_data.guess.character.value.name))
+        self._room_button.set_text(str(turn_data.guess.room.value.name))
+
+        self.panel.show()
+
+    def process_events(self, event):
+        if not self.panel.visible or event.type != pygame.USEREVENT:
+            return
+
+        if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
+            done = False
+
+            if event.ui_element == self._weapon_button:
+                self.player.set_card_to_show(self._solution.weapon)
+                done = True
+            elif event.ui_element == self._character_button:
+                self.player.set_card_to_show(self._solution.character)
+                done = True
+            elif event.ui_element == self._room_button:
+                self.player.set_card_to_show(self._solution.room)
+                done = True
+
+            if done:
+                self.panel.hide()
+                self.on_end_turn()
+
+class GuessPanel:
+
+    def __init__(self, manager: UIManager, screen_width: int, screen_height: int, player: HumanPlayer, \
+            on_end_turn: Callable):
+        self.player = player
+        self.on_end_turn = on_end_turn
+        self._create_panel(manager, screen_width, screen_height)
+   
+    def _create_panel(self, manager: UIManager, screen_width: int, screen_height: int):
+        self.width = 300
+        self.height = 275
+
+        rect = create_modal_rect(screen_width, screen_height, self.width, self.height)
+        self.panel = UIPanel(rect, 0, manager, element_id='guess_panel')
+
+        UILabel(pygame.Rect((0, 10), (self.width, 20)), 
+                "Make a guess", 
+                manager, 
+                container=self.panel)
+
+        y_offset = 10 + 10
+
+        button_rect = pygame.Rect((50, y_offset + 25), (200, 50))
+        self._weapon_button = UIButton(button_rect, '', manager, container=self.panel)
+
+        y_offset += 25 + 50
+
+        button_rect = pygame.Rect((50, y_offset + 25), (200, 50))
+        self._character_button = UIButton(button_rect, '', manager, container=self.panel)
+
+        y_offset += 25 + 50
+
+        button_rect = pygame.Rect((50, y_offset + 25), (200, 50))
+        self._room_button = UIButton(button_rect, '', manager, container=self.panel)
+
+        self.panel.hide()

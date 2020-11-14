@@ -64,13 +64,15 @@ class Director:
 	winner: Player
 	game_status: GameStatus
 	end_game_lock: Lock
+	_turn_lock: Lock
 	_event_handlers: Dict[GameEvent, List[Callable]]
 	active_player: Player	
 
-	def __init__(self, end_game_lock: Lock, players: List[Player]):
+	def __init__(self, end_game_lock: Lock, players: List[Player], turn_lock = None):
 		self.game_status = GameStatus.STARTING
 		self.player_by_character = dict()
 
+		self._turn_lock = turn_lock
 		self.end_game_lock = end_game_lock
 		self.players = players
 
@@ -121,8 +123,29 @@ class Director:
 		self.game_status = GameStatus.ENDED
 
 	def take_turns_until_player(self, stop_player: Player):
+		if self._turn_lock is not None:
+			self._take_turns_until_player_with_lock(stop_player)
+			return
+
 		while self.active_player != stop_player:
 			self.player_take_turn(self.active_player)
+
+			if self.game_status == GameStatus.ENDED:
+				return
+
+	def _take_turns_until_player_with_lock(self, stop_player: Player):
+		while self.active_player != stop_player:
+			if isinstance(self.active_player, HumanPlayer):				
+				self.player_take_turn(self.active_player)
+
+				# wait for other thread to get it. probably not needed
+				while not self._turn_lock.locked():
+					pass
+
+				self._turn_lock.acquire()
+				self._turn_lock.release()
+			else:
+				self.player_take_turn(self.active_player)
 
 			if self.game_status == GameStatus.ENDED:
 				return
@@ -194,7 +217,18 @@ class Director:
 		## ask each player in order
 		skipped_players = 0
 		for other_player in self._asking_order(player):
-			match = other_player.show_card(solution)
+			if isinstance(other_player, HumanPlayer):
+				match = other_player.show_card(solution)
+
+				if match is not None:
+					# wait for other thread to get it. probably not needed
+					while not self._turn_lock.locked():
+						pass
+
+					self._turn_lock.acquire()
+					self._turn_lock.release()
+			else:
+				match = other_player.show_card(solution)
 
 			if match is not None:
 				self._on_guess(player, solution, skipped_players)

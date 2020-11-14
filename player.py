@@ -187,9 +187,9 @@ class Player:
 		if match.is_empty():
 			return None
 
-		return self.pick_card_to_show(match)
+		return self.pick_card_to_show(match, guess)
 
-	def pick_card_to_show(self, match: Solution) -> Solution:
+	def pick_card_to_show(self, match: Solution, guess: Solution) -> Solution:
 		raise Exception('Not Implemented')
 
 	def take_turn(self, action: PlayerAction = None):		
@@ -231,7 +231,7 @@ class NaiveComputerPlayer(Player):
 		super().enter_room(room)
 		self.remaining_path = None
 
-	def pick_card_to_show(self, match: Solution) -> Solution:
+	def pick_card_to_show(self, match: Solution, guess: Solution) -> Solution:
 		# only have to show one card
 		if match.character is not None:
 			match.weapon = None
@@ -264,7 +264,8 @@ class NaiveComputerPlayer(Player):
 			self.log_book.log(match.room)
 
 	# override
-	def take_turn(self, action: PlayerAction = None):		
+	def take_turn(self, action: PlayerAction = None):
+		print("NaiveComputerPlayer: " + str(self.character) + " taking turn")
 		action = action if action is not None else self.next_turn_action()
 
 		if action == PlayerAction.ACCUSATION:
@@ -274,7 +275,7 @@ class NaiveComputerPlayer(Player):
 			path = self.use_roll(roll)
 			self.move_path(roll, path)
 		else:
-			self.make_guess()	
+			self.make_guess()
 
 	def next_turn_action(self):
 		if self.log_book.has_solution():
@@ -345,44 +346,50 @@ class NaiveComputerPlayer(Player):
 	def __repr__(self):
 		return "Computer Player: " + super().__repr__()
 
+
+class HumanTurn:
+	pass
+
+class PickMatchTurn(HumanTurn):
+	match: Solution
+	guess: Solution
+
+	def __init__(self, match: Solution, guess: Solution):
+		self.match = match
+		self.guess = guess
+
 class HumanPlayer(Player):
 
-	_on_turn: Callable[[Lock]]
+	on_turn: Callable[[str]]
 	_use_roll: Callable[[int]]
 	_on_pick_card_to_show: Callable[[Solution], Card]
 
-	def __init__(self, on_turn, on_roll, on_pick_card_to_show):
-		self._on_turn = on_turn
-		self._on_roll = on_roll
-		self._on_pick_card_to_show = on_pick_card_to_show
+	card_to_show: Solution
 
-	def pick_card_to_show(self, match: Solution) -> Solution:
-		card = self._on_pick_card_to_show(match)
-		
-		solution = Solution(None, None, None)
+	def __init__(self):
+		pass
 
+	# override
+	def show_card(self, guess: Solution) -> Solution:
+		self.card_to_show = None
+		return super().show_card(guess)
+
+	def pick_card_to_show(self, match: Solution, guess: Solution) -> Solution:
+		self.card_to_show = Solution(None, None, None)
+		self.on_turn(PickMatchTurn(match, guess))
+		return self.card_to_show		
+
+	def set_card_to_show(self, card):
 		if card.type == CardType.ROOM:
-			solution.room = card
+			self.card_to_show.room = card
 		elif card.type == CardType.WEAPON:
-			solution.weapon = card
+			self.card_to_show.weapon = card
 		elif card.type == CardType.CHARACTER:
-			solution.character = card
-
-		return solution
+			self.card_to_show.character = card
 
 	def take_turn(self, action: PlayerAction = None):
-		turn_lock = Lock()
-		turn_lock.acquire()
-
-		self._on_turn()
-
-		# wait for UI to release lock
-		turn_lock.acquire()
-		# needs to block until player does something
-
-	def take_roll(self):
-		roll = roll_dice()
-		self._use_roll(roll)
+		print("HumanPlayer: " + str(self.character) + " taking turn")
+		self.on_turn(HumanTurn())
 
 	def accuse(self, solution: Solution) -> bool:
 		return self.director.make_accusation(self, self.log_book.solution)

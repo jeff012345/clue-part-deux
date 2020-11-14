@@ -11,23 +11,26 @@ from clue_tf_env import ClueGameEnv
 
 run_game_lock = threading.Lock()
 end_game_lock = threading.Lock()
+turn_lock = threading.Lock()
+
+human_player = HumanPlayer()
 
 players = [
 	NaiveComputerPlayer(),
 	NaiveComputerPlayer(),
 	NaiveComputerPlayer(),
 	NaiveComputerPlayer(),
-	NaiveComputerPlayer(),
+	human_player,
 	RLPlayer()
 ]
 
-director = Clue.Director(end_game_lock, players)
+director = Clue.Director(end_game_lock, players, turn_lock)
 
 # runs the UI game board
 def run_board():    
     try:
         run_game_lock.acquire()
-        game_board.run(director, run_game_lock, end_game_lock, None)
+        game_board.run(director, run_game_lock, end_game_lock, human_player, turn_lock)
     except Exception as err:
         end_game_lock.acquire()
 
@@ -53,17 +56,19 @@ def run_game():
 
         run_game_lock.acquire()
 
-        while not end_game_lock.locked() and not time_step.is_last():
+        while not end_game_lock.locked() and not time_step.is_last():            
             action_step = saved_policy.action(time_step)
-            time_step = eval_tf_env.step(action_step.action)            
+            time_step = eval_tf_env.step(action_step.action)
             
         run_game_lock.release()
 
         #game is done
-        end_game_lock.acquire()
+        if not end_game_lock.locked():
+            end_game_lock.acquire()
 
     except Exception as err:
-        end_game_lock.acquire()
+        if not end_game_lock.locked():
+            end_game_lock.acquire()
 
         traceback.print_tb(err.__traceback__)
         raise err
