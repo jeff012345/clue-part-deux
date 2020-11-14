@@ -288,6 +288,10 @@ class MatchPickPanel:
 
 class GuessPanel:
 
+    panel: UIPanel
+    player: HumanPlayer
+    on_end_turn: Callable
+
     def __init__(self, manager: UIManager, screen_width: int, screen_height: int, player: HumanPlayer, \
             on_end_turn: Callable):
         self.player = player
@@ -322,3 +326,6 @@ class GuessPanel:
         self._room_button = UIButton(button_rect, '', manager, container=self.panel)
 
         self.panel.hide()
+
+    def show(self):
+        self.panel.show()
