@@ -118,6 +118,31 @@ class Board:
 
 		return Path(shortest_path)
 
+	def is_room(row: int, col: int):
+		return isinstance(Board.BOARD_POSITIONS[row][col], RoomPosition)
+
+	def get(row: int, col: int) -> Position:
+		return Board.BOARD_POSITIONS[row][col]
+
+	def find_points(position: Position) -> List[Tuple[int, int]]:
+		coords = []
+
+		r = 0
+		for row in Board.BOARD_POSITIONS:
+			for p in row:
+				if p == position:
+					coords.append((r, c))
+				c += 1
+			r += 1
+
+	def coords_from_position(position) -> List[Tuple[int, int]]:
+		if isinstance(position, Space):
+			return [(position.row, position.col)]
+		elif isinstance(position, RoomPosition):
+			return list(map(lambda d: (d[0] - 1, d[1] - 1), doors[position.room]))
+		else:
+			raise Exception("shouldn't be here")
+
 def find_connections(row: int, col: int) -> List[Tuple[int, int]]:
 	if board_spaces[row][col] == 0:
 		raise Exception(f"Position (${row},${col}) is not valid")

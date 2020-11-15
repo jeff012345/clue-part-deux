@@ -192,7 +192,9 @@ class Director:
 
 			# assign start location
 			start = PLAYER_ORDER[i][1]
-			player.position = (start[0] - 1, start[1] - 1)
+			pos = Board.get(start[0] - 1, start[1] - 1)
+			player.move(pos)
+			#player.position = (start[0] - 1, start[1] - 1)
 
 			i += 1
 			

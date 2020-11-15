@@ -54,6 +54,21 @@ class RoomPosition(Position):
 	def __repr__(self):
 		return str(self.room) ## + "; " + str(self.connections)
 
+	def __eq__(self, other):
+		if isinstance(other, RoomPosition):
+			return self.room == other.room
+		return False
+
+	def __ne__(self, other):
+		"""Overrides the default implementation (unnecessary in Python 3)"""
+		x = self.__eq__(other)
+		if x is not NotImplemented:
+			return not x
+		return NotImplemented
+
+	def __hash__(self):
+		return super().__hash__()
+
 class Space(Position):
 	row: int
 	col: int
@@ -68,6 +83,21 @@ class Space(Position):
 
 	def pos_str(self):
 		return "(" + str(self.row + 1) + "," + str(self.col + 1) + ")"
+
+	def __eq__(self, other):
+		if isinstance(other, Space):
+			return self.row == other.row and self.col == other.col
+		return False
+
+	def __ne__(self, other):
+		"""Overrides the default implementation (unnecessary in Python 3)"""
+		x = self.__eq__(other)
+		if x is not NotImplemented:
+			return not x
+		return NotImplemented
+
+	def __hash__(self):
+		return super().__hash__()
 
 class Card:
 

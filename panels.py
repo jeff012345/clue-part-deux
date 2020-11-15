@@ -69,6 +69,7 @@ class StartTurnPanel:
             self._guess_button.disable()
         else:
             self._guess_button.enable()
+        self._guess_button.rebuild()
 
         self.panel.show()
 

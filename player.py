@@ -161,6 +161,7 @@ class Player:
 	director: Director
 	character: Character
 	position: Tuple[int, int]
+	board_position: Position
 	hand: Hand
 	log_book: LogBook
 	room: Room
@@ -173,6 +174,7 @@ class Player:
 		self.log_book = LogBook()
 		self.room = None		
 		self.position = None
+		self.board_position = None
 		self.character = None
 
 	# deal card to player
@@ -199,19 +201,20 @@ class Player:
 		if roll < room_path.distance:
 			raise Exception("Path is longer than roll")
 
-		#print("Moving " + str(room_path.path))
-
 		for p in room_path.path:
-			if isinstance(p, Space):
-				self.room = None
-				self.position = (p.row, p.col)
-			elif isinstance(p, RoomPosition):
-				self.enter_room(p.room)
-			else:
-				raise Expection("wat?")
-
-			# move animation?
+			self.move(p)
 	
+	def move(self, p: Position):
+		self.board_position = p
+
+		if isinstance(p, Space):
+			self.room = None
+			self.position = (p.row, p.col)
+		elif isinstance(p, RoomPosition):
+			self.enter_room(p.room)
+		else:
+			raise Expection("wat?")
+
 	def enter_room(self, room: Room):
 		self.room = room
 		self.position = None
@@ -390,10 +393,6 @@ class HumanPlayer(Player):
 	def take_turn(self, action: PlayerAction = None):
 		print("HumanPlayer: " + str(self.character) + " taking turn")
 		self.on_turn(HumanTurn())
-
-	def move(self, position: Tuple[int, int]):
-		
-		pass
 
 	def accuse(self, solution: Solution) -> bool:
 		return self.director.make_accusation(self, self.log_book.solution)

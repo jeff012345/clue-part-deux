@@ -5,10 +5,11 @@ import pygame
 import pygame_gui
 
 from player import HumanPlayer
-import paths
+from paths import Board, board_spaces, doors
 from game_board_util import scale_position
 from definitions import roll_dice
 from log_book_ui import LogBookPanel
+from definitions import RoomPosition
 
 class PlayerRoll:
     
@@ -19,14 +20,14 @@ class PlayerRoll:
 
     def _valid_position(pos):
         return pos[0] >= 0 and pos[0] < 25 and pos[1] >= 0 and pos[1] < 24 \
-            and paths.board_spaces[pos[0]][pos[1]] != 0
+            and board_spaces[pos[0]][pos[1]] != 0
 
     player: HumanPlayer
     surface: pygame.Surface
     on_end_turn: Callable
     _rolling: bool
     _distance: int
-    _positions: List[Tuple[int, int]]
+    _positions: List[Position]
     _rects: List[pygame.Rect]
     _drawn_rects: List[pygame.Rect]
 
@@ -43,36 +44,74 @@ class PlayerRoll:
 
         self._calculate_positions()
 
-    def _calculate_positions(self):
-        start = self.player.position
+    def _calculate_positions(self):   
+        #self._positions = []
+        #
+        #if self.player.room is None:
+        #    self._add_possible_positions(self.player.position)
+        #else:
+        #    for position in doors[self.player.room]:
+        #        self._add_possible_positions(position)
 
-        self._positions = []
+        # if player is in a room, the position is None
+        #cur_coords = self.player.position
+        #cur_pos = Board.get(cur_pos[0], cur_pos[1])
 
-        # from left to right, scale up to down for space that fix within 
-        # the roll and are valid positions
-        x_offset = -1 * self._distance
-        while x_offset <= self._distance:
-            y_offset = 0
+        #for pos in Board.find_points(cur_pos):
+        #    self.add_possible_positions(pos)
 
-            while abs(y_offset) + abs(x_offset) <= self._distance:
-                # up
-                pos = (start[0] + x_offset, start[1] + y_offset)
-                if PlayerRoll._valid_position(pos):
-                    self._positions.append(pos)
+        #self._remove_invalid_positions()
 
-                # down
-                pos = (start[0] + x_offset, start[1] + y_offset * -1)
-                if PlayerRoll._valid_position(pos):                 
-                    self._positions.append(pos)
+        edge = set(self.player.board_position.connections)
+        self._positions = list(self._find_all_positions_search(2, edge, set())) #self._distance
 
-                y_offset += 1
-
-            x_offset += 1
-
-        self._remove_invalid_positions()
-
-        self._rects = list(map(scale_position, self._positions))
+        all_position_coords = []
+        for p in self._positions:
+            all_position_coords.extend(Board.coords_from_position(p))
+        
+        self._rects = list(map(scale_position, all_position_coords))
         self._rects = list(map(lambda p: pygame.Rect((p[0] - 5, p[1] - 5), (11, 11)), self._rects))
+
+    #def _add_possible_positions(self, start: Tuple[int, int]):
+    #    # from left to right, scale up to down for space that fix within 
+    #    # the roll and are valid positions
+    #    x_offset = -1 * self._distance
+    #    while x_offset <= self._distance:
+    #        y_offset = 0
+
+    #        while abs(y_offset) + abs(x_offset) <= self._distance:
+    #            # up
+    #            pos = (start[0] + x_offset, start[1] + y_offset)
+    #            if PlayerRoll._valid_position(pos):
+    #                self._positions.append(pos)
+
+    #            # down
+    #            pos = (start[0] + x_offset, start[1] + y_offset * -1)
+    #            if PlayerRoll._valid_position(pos):
+    #                self._positions.append(pos)
+
+    #            y_offset += 1
+
+    #        x_offset += 1
+
+    def _find_all_positions_search(self, distance: int, edge: Set[Position], 
+                                   all_positions: Set[Position]) -> Set[Position]:
+        if distance == 1:
+            return all_positions.union(edge)
+
+        new_edge: Set[Position] = set()
+
+        for p in edge:
+            all_positions.add(p)
+
+            for conn in p.connections:
+                if conn not in all_positions and conn not in edge \
+                        and not (isinstance(p, RoomPosition) and isinstance(conn, RoomPosition)) \
+                        and conn != self.player.board_position:
+                    # haven't seen this node before
+                    new_edge.add(conn)
+
+        return self._find_all_positions_search(distance - 1, new_edge, all_positions)
 
     # remove positions that don't actually correct to the rest of them
     def _remove_invalid_positions(self):
@@ -123,7 +162,7 @@ class PlayerRoll:
                     break
                 i += 1
 
-    def _click_move(self, pos):
+    def _click_move(self, pos: Position):
         self.player.move(pos)
         self._rolling = False
         self.on_end_turn()
