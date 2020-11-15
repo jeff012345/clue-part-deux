@@ -28,6 +28,7 @@ class PlayerRoll:
     _rolling: bool
     _distance: int
     _positions: List[Position]
+    _rect_to_position: Dict[Tuple, Position]
     _rects: List[pygame.Rect]
     _drawn_rects: List[pygame.Rect]
 
@@ -45,54 +46,20 @@ class PlayerRoll:
         self._calculate_positions()
 
     def _calculate_positions(self):   
-        #self._positions = []
-        #
-        #if self.player.room is None:
-        #    self._add_possible_positions(self.player.position)
-        #else:
-        #    for position in doors[self.player.room]:
-        #        self._add_possible_positions(position)
-
-        # if player is in a room, the position is None
-        #cur_coords = self.player.position
-        #cur_pos = Board.get(cur_pos[0], cur_pos[1])
-
-        #for pos in Board.find_points(cur_pos):
-        #    self.add_possible_positions(pos)
-
-        #self._remove_invalid_positions()
-
         edge = set(self.player.board_position.connections)
-        self._positions = list(self._find_all_positions_search(2, edge, set())) #self._distance
-
-        all_position_coords = []
-        for p in self._positions:
-            all_position_coords.extend(Board.coords_from_position(p))
+        self._positions = list(self._find_all_positions_search(self._distance, edge, set()))     
         
-        self._rects = list(map(scale_position, all_position_coords))
-        self._rects = list(map(lambda p: pygame.Rect((p[0] - 5, p[1] - 5), (11, 11)), self._rects))
+        self._rects = []
+        self._rect_to_position = dict()
 
-    #def _add_possible_positions(self, start: Tuple[int, int]):
-    #    # from left to right, scale up to down for space that fix within 
-    #    # the roll and are valid positions
-    #    x_offset = -1 * self._distance
-    #    while x_offset <= self._distance:
-    #        y_offset = 0
+        for p in self._positions:
+            coords = list(map(scale_position, Board.coords_from_position(p)))
+            new_rects = list(map(lambda p: pygame.Rect((p[0] - 5, p[1] - 5), (11, 11)), coords))
+            
+            self._rects.extend(new_rects)
 
-    #        while abs(y_offset) + abs(x_offset) <= self._distance:
-    #            # up
-    #            pos = (start[0] + x_offset, start[1] + y_offset)
-    #            if PlayerRoll._valid_position(pos):
-    #                self._positions.append(pos)
-
-    #            # down
-    #            pos = (start[0] + x_offset, start[1] + y_offset * -1)
-    #            if PlayerRoll._valid_position(pos):
-    #                self._positions.append(pos)
-
-    #            y_offset += 1
-
-    #        x_offset += 1
+            for r in new_rects:
+                self._rect_to_position[(r.x, r.y)] = p
 
     def _find_all_positions_search(self, distance: int, edge: Set[Position], 
                                    all_positions: Set[Position]) -> Set[Position]:
@@ -113,36 +80,9 @@ class PlayerRoll:
 
         return self._find_all_positions_search(distance - 1, new_edge, all_positions)
 
-    # remove positions that don't actually correct to the rest of them
-    def _remove_invalid_positions(self):
-        no_dupe_positions = []
-
-        # remove duplicates
-        for position in self._positions:
-            dupe = False
-            for cmp in no_dupe_positions:
-                if position[0] == cmp[0] and position[1] == cmp[1]:
-                    dupe = True
-                    break
-
-            if not dupe:
-                no_dupe_positions.append(position)
-
-        good_positions = []
-        for position in no_dupe_positions:
-            for cmp in no_dupe_positions:
-                if position[0] == cmp[0] and position[1] == cmp[1]:
-                    continue
-
-                if PlayerRoll._is_adjacent(position, cmp):
-                    good_positions.append(position)
-                    break               
-
-        self._positions = good_positions
-
     def draw(self):
         if not self._rolling:
-            return      
+            return
         
         self._drawn_rects = list(map(lambda rect: pygame.draw.rect(self.surface, (120, 120, 120), rect), self._rects)) 
 
@@ -158,7 +98,8 @@ class PlayerRoll:
                 rect = rect.move(LogBookPanel.PANEL_WIDTH, 0)
 
                 if rect.collidepoint(pos):
-                    self._click_move(self._positions[i])
+                    org_rect = self._rects[i]
+                    self._click_move(self._rect_to_position[(org_rect.x, org_rect.y)])
                     break
                 i += 1
 

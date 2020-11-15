@@ -254,7 +254,7 @@ class NaiveComputerPlayer(Player):
 		guess.weapon = self.decide_weapon_guess()
 		guess.character = self.decide_character_guess()
 
-		(match, skipped_count) = self.director.make_guess(self, guess)
+		(match, skipped_count, showing_player) = self.director.make_guess(self, guess)
 		self._log_guess_match(guess, match, skipped_count)
 
 	def _log_guess_match(self, guess, match, skipped_count):
@@ -350,10 +350,10 @@ class NaiveComputerPlayer(Player):
 		return "Computer Player: " + super().__repr__()
 
 
-class HumanTurn:
+class Interaction:
 	pass
 
-class PickMatchTurn(HumanTurn):
+class PickMatchTurn(Interaction):
 	match: Solution
 	guess: Solution
 
@@ -361,16 +361,56 @@ class PickMatchTurn(HumanTurn):
 		self.match = match
 		self.guess = guess
 
+class GuessOutcome(Interaction):
+	match: Solution
+	showing_player: Player
+
+	def __init__(self, match: Solution, showing_player: Player):
+		self.match = match
+		self.showing_player = showing_player
+
+class AccusationOutcome(Interaction):
+	correct: bool
+	solution: Solution
+
+	def __init__(self, correct: bool, solution: Solution):
+		self.correct = correct
+		self.solution = solution
+
+class OpponentGuess(Interaction):
+	opponent: Player
+	guess: Solution
+
+	def __init__(self, opponent: Player, guess: Solution):
+		self.opponent = opponent
+		self.guess = guess
+
+class DealCard(Interaction):
+	card: Card
+
+	def __init__(self, card: Card):
+		self.card = card
+
+class OpponentWin(Interaction):
+	opponent: Player
+	guess: Solution
+
+	def __init__(self, opponent: Player, guess: Solution):
+		self.opponent = opponent
+		self.guess = guess
+
 class HumanPlayer(Player):
 
-	on_turn: Callable[[str]]
-	_use_roll: Callable[[int]]
-	_on_pick_card_to_show: Callable[[Solution], Card]
+	on_turn: Callable[[Interaction]]
 
 	card_to_show: Solution
 
+	player_action: PlayerAction
+	solution: Solution
+
 	def __init__(self):
-		pass
+		self.accusation = None
+		self.guess = None
 
 	# override
 	def show_card(self, guess: Solution) -> Solution:
@@ -392,11 +432,20 @@ class HumanPlayer(Player):
 
 	def take_turn(self, action: PlayerAction = None):
 		print("HumanPlayer: " + str(self.character) + " taking turn")
-		self.on_turn(HumanTurn())
+		self.player_action = None
+		self.solution = None
 
-	def accuse(self, solution: Solution) -> bool:
-		return self.director.make_accusation(self, self.log_book.solution)
+		self.on_turn(Interaction())
 
-	def guess(self, solution: Solution):
-		return self.director.make_guess(self, solution)
-		 
+	def accuse(self, solution: Solution):
+		self.player_action = PlayerAction.ACCUSATION
+		self.solution = solution
+
+	def make_guess(self, solution: Solution):
+		self.player_action = PlayerAction.GUESS
+		self.solution = solution		
+	
+	# override
+	def move(self, position):
+		super().move(position)
+		self.player_action = PlayerAction.MOVE

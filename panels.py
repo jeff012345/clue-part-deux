@@ -222,8 +222,10 @@ class GuessPanel:
     _character_menu: UIDropDownMenu
     _room_menu: UIDropDownMenu
     _guess_button: UIButton
+    _room_menu_rect: pygame.Rect
 
     guess: Solution
+    is_guess: bool
 
     def __init__(self, manager: UIManager, screen_width: int, screen_height: int, player: HumanPlayer, \
             on_end_turn: Callable):
@@ -268,19 +270,32 @@ class GuessPanel:
         rect = pygame.Rect((0, y_offset), (self.width, 20))
         UILabel(rect, text, self.manager, container=self.panel)
 
-    def make_drop_down(self, items: Enum, y_offset: int) -> UIDropDownMenu:
-        items = list(map(lambda i: i.name, items))
+    def make_drop_down(self, enum: Enum, y_offset: int) -> UIDropDownMenu:
+        items = list(map(lambda i: i.name, enum))
         rect = pygame.Rect((int((self.width - 200) / 2), y_offset), (200, 25))
+
+        if enum == Room:
+            self._room_menu_rect = rect
+
         return UIDropDownMenu(items, items[0], rect, self.manager, container=self.panel)
 
     def show_guess(self):
+        self.is_guess = True
         self._guess_button.set_text('Guess!')
-        self._room_menu.selected_option = self.player.room.name
+
+        rect = self._room_menu_rect.copy()
+        items = list(map(lambda i: i.name, Room))
+        self._room_menu.kill()
+        self._room_menu = UIDropDownMenu(items, self.player.room.name, rect, self.manager, container=self.panel)
+        #self._room_menu.rebuild()
         self._room_menu.disable()
+
         self._show()
 
     def show_accuse(self):
+        self.is_guess = False
         self._guess_button.set_text('Make Accusation!')
+        self._room_menu.enable()
         self._show()
 
     def _show(self):
@@ -311,7 +326,12 @@ class GuessPanel:
         if event.user_type == pygame_gui.UI_BUTTON_PRESSED and event.ui_element == self._guess_button:
             print("guessing " + str(self.guess))
             self.panel.hide()
-            #self.on_end_turn()
+
+            if self.is_guess:
+                self.player.make_guess(self.guess)
+            else:
+                self.player.accuse(self.guess)
+            self.on_end_turn()
 
     def _update_weapon(self):
         self.guess.weapon = GuessPanel.card_from_text(self._weapon_menu, Weapon, CardType.WEAPON)
@@ -322,6 +342,23 @@ class GuessPanel:
     def _update_room(self):
         self.guess.room = GuessPanel.card_from_text(self._room_menu, Room, CardType.ROOM)
 
-    
 
-    
+class EndTurnWindow(pygame_gui.windows.UIMessageWindow):
+
+    on_end_turn: Callable
+
+    def __init__(self, rect, manager, on_end_turn: Callable, title: str, message: str):        
+        super().__init__(rect, message, manager, window_title=title, object_id='#end_turn_window')
+        self.on_end_turn = on_end_turn
+
+    def process_event(self, event: pygame.event.Event):
+        if not self.visible:
+            return
+
+        super().process_event(event)
+
+        if event.type == pygame.USEREVENT and event.user_type == pygame_gui.UI_BUTTON_PRESSED \
+                and event.ui_object_id == '#end_turn_window.#dismiss_button':
+            self.on_end_turn()
+            self.kill()
+        

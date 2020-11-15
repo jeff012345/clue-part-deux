@@ -65,6 +65,7 @@ class Director:
 	game_status: GameStatus
 	end_game_lock: Lock
 	_turn_lock: Lock
+	_human_player: HumanPlayer
 	_event_handlers: Dict[GameEvent, List[Callable]]
 	active_player: Player	
 
@@ -78,6 +79,9 @@ class Director:
 
 		for p in self.players:
 			p.director = self
+
+			if isinstance(p, HumanPlayer):
+				self._human_player = p
 
 		self._event_handlers = dict()
 		for event in GameEvent:
@@ -135,20 +139,35 @@ class Director:
 
 	def _take_turns_until_player_with_lock(self, stop_player: Player):
 		while self.active_player != stop_player:
-			if isinstance(self.active_player, HumanPlayer):				
-				self.player_take_turn(self.active_player)
+			if isinstance(self.active_player, HumanPlayer):
+				human = self.active_player
+				self.player_take_turn(human)
+				
+				self._wait_for_user()
 
-				# wait for other thread to get it. probably not needed
-				while not self._turn_lock.locked():
-					pass
+				if human.player_action == PlayerAction.GUESS:
+					(match, skipped, showing_player) = self.make_guess(human, human.solution)
+					human.on_turn(GuessOutcome(match, showing_player))
+					self._wait_for_user()
 
-				self._turn_lock.acquire()
-				self._turn_lock.release()
+				elif human.player_action == PlayerAction.ACCUSATION:
+					correct = self.make_accusation(human, human.solution)
+					human.on_turn(AccusationOutcome(correct, human.solution))
+					self._wait_for_user()
+					
 			else:
 				self.player_take_turn(self.active_player)
 
 			if self.game_status == GameStatus.ENDED:
 				return
+
+	def _wait_for_user(self):
+		# wait for other thread to get it. probably not needed
+		while not self._turn_lock.locked():
+			pass
+
+		self._turn_lock.acquire()
+		self._turn_lock.release()
 
 	def player_take_turn(self, player: Player):
 		player.take_turn()
@@ -201,12 +220,16 @@ class Director:
 		self.active_player = self.players[0]
 
 	## store the order somewhere so it doesn't need to be calculated each time
-	def make_guess(self, player: Player, solution: Solution) -> Tuple[Solution, int]:
+	def make_guess(self, player: Player, solution: Solution) -> Tuple[Solution, int, Player]:
 		if not solution.is_complete():
 			print('Incomplete guess')
 			print(solution)
 			print(player.log_book.log_book)
 			raise Exception()
+
+		if self._human_player is not None and player != self._human_player:
+			self._human_player.on_turn(OpponentGuess(player, solution))
+			self._wait_for_user()
 
 		## move the accused player
 		# removed for training
@@ -234,17 +257,17 @@ class Director:
 
 			if match is not None:
 				self._on_guess(player, solution, skipped_players)
-				return (match, skipped_players)
+				return (match, skipped_players, other_player)
 
 			skipped_players += 1
 
 		self._on_guess(player, solution, skipped_players)
-		return (None, skipped_players)
+		return (None, skipped_players, None)
 
 	def _on_guess(self, player: Player, solution: Solution, skipped_players: int):
 		event = GuessEvent(player, solution, skipped_players)
 		for func in self._event_handlers[GameEvent.GUESS]:
-			func(event)
+			func(event)	
 
 	def _asking_order(self, player: Player) -> List[Player]:
 		player_index = self.players.index(player)
@@ -273,6 +296,7 @@ class Director:
 			print('this shouldn\'t happen')
 
 			if isinstance(player, HumanPlayer):
+				self.game_status = GameStatus.ENDED
 				return False
 			raise Exception()
 	
