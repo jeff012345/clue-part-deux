@@ -399,6 +399,14 @@ class OpponentWin(Interaction):
 		self.opponent = opponent
 		self.guess = guess
 
+class GameOver(Interaction):
+	winner: Player
+	solution: Solution
+
+	def __init__(self, winner: Player, solution: Solution):
+		self.winner = winner
+		self.solution = solution
+
 class HumanPlayer(Player):
 
 	on_turn: Callable[[Interaction]]

@@ -4,6 +4,7 @@ import pygame
 import pygame_gui
 
 from player import *
+from ai_players import RLPlayer
 from Clue import Director, GameStatus
 from threading import Lock
 from log_book_ui import LogBookPanel
@@ -78,12 +79,13 @@ def run(director: Director, run_game_lock: Lock, end_game_lock: Lock, human: Hum
     
         game_display.fill(white)
                 
-        board_surface.blit(board_img, (0, 0))
-        player_roll.draw()
+        board_surface.blit(board_img, (0, 0))        
 
         if director.game_status == GameStatus.RUNNING:
             for player in player_pieces:
                 player.draw()
+
+        player_roll.draw()
 
         game_display.blit(board_surface, (log_book_width, 0))        
 
@@ -104,17 +106,21 @@ def on_player_turn(manager, turn_data: HumanTurn, lock: Lock, start_turn_menu: S
     if isinstance(turn_data, PickMatchTurn):
         match_pick_panel.show(turn_data)
     elif isinstance(turn_data, GuessOutcome):
-        player_name = turn_data.showing_player.character.name
-        card: Enum = None
-
-        if turn_data.match.character is not None:
-            card = turn_data.match.character
-        elif turn_data.match.weapon is not None:
-            card = turn_data.match.weapon
+        if turn_data.match is None:
+            message = "No one showed a card!"
         else:
-            card = turn_data.match.room
+            player_name = turn_data.showing_player.character.name
+            card: Enum = None
 
-        message = player_name + " has showed you " + card.value.name
+            if turn_data.match.character is not None:
+                card = turn_data.match.character
+            elif turn_data.match.weapon is not None:
+                card = turn_data.match.weapon
+            else:
+                card = turn_data.match.room
+
+            message = player_name + " has showed you " + card.value.name
+
         rect = create_modal_rect(display_width, display_height, 300, 160)
         EndTurnWindow(rect, manager, on_end_turn, "Guess Result", message)
     elif isinstance(turn_data, AccusationOutcome):
@@ -140,6 +146,16 @@ def on_player_turn(manager, turn_data: HumanTurn, lock: Lock, start_turn_menu: S
         
         rect = create_modal_rect(display_width, display_height, 400, 200)
         EndTurnWindow(rect, manager, on_end_turn, "Dealt Cards", message)
+    elif isinstance(turn_data, GameOver):
+        player_name = turn_data.winner.character.name
+        message = "You have lost! " + player_name + " is the winner!"
+        message += "<br><strong>Solution:</strong> " + str(turn_data.solution)
+
+        if isinstance(turn_data.winner, RLPlayer):
+            message += "Winner was the AI"
+
+        rect = create_modal_rect(display_width, display_height, 400, 200)
+        EndTurnWindow(rect, manager, on_end_turn, "Game Over", message)
     else:
         start_turn_menu.show()
 

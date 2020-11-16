@@ -161,6 +161,10 @@ class Director:
 			if self.game_status == GameStatus.ENDED:
 				return
 
+		if self.winner != None and self.winner != self._human_player:
+			self._human_player.on_turn(GameOver(self.winner, self.solution))
+			self._wait_for_user()
+
 	def _wait_for_user(self):
 		# wait for other thread to get it. probably not needed
 		while not self._turn_lock.locked():
