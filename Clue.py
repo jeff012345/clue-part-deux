@@ -194,6 +194,10 @@ class Director:
 			if i == num_of_players:
 				i = 0
 
+		if self._human_player is not None:
+			self._human_player.on_turn(DealCard(self._human_player.hand.all))
+			self._wait_for_user()
+
 	def _assign_players(self):
 		for p in self.players:
 			p.reset()

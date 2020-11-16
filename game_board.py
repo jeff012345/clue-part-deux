@@ -133,6 +133,13 @@ def on_player_turn(manager, turn_data: HumanTurn, lock: Lock, start_turn_menu: S
         message = "Player " + player_name + " made a guess.<br><br >" + str(turn_data.guess)
         rect = create_modal_rect(display_width, display_height, 400, 200)
         EndTurnWindow(rect, manager, on_end_turn, "Opponent Guess", message)
+    elif isinstance(turn_data, DealCard):
+        message = "You have been dealt the following cards<br>"
+        for card in turn_data.cards:
+            message += str(card) + "<br>"
+        
+        rect = create_modal_rect(display_width, display_height, 400, 200)
+        EndTurnWindow(rect, manager, on_end_turn, "Dealt Cards", message)
     else:
         start_turn_menu.show()
 

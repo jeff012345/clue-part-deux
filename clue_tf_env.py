@@ -59,7 +59,8 @@ class ClueGameEnv(py_environment.PyEnvironment):
                                                              name='observation')
        
         self.__init_clue__(eval, director)
-        self._reset()
+        # this might break things
+        #self._reset()
 
     def __init_clue__(self, eval, director):
         if director is not None:

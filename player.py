@@ -386,10 +386,10 @@ class OpponentGuess(Interaction):
 		self.guess = guess
 
 class DealCard(Interaction):
-	card: Card
+	cards: List[Card]
 
-	def __init__(self, card: Card):
-		self.card = card
+	def __init__(self, cards: List[Card]):
+		self.cards = cards
 
 class OpponentWin(Interaction):
 	opponent: Player

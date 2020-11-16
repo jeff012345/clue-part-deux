@@ -52,9 +52,9 @@ def run_game():
     saved_policy = tf.compat.v2.saved_model.load(policy_dir)
 
     try:
-        time_step = eval_tf_env.reset()
-
         run_game_lock.acquire()
+
+        time_step = eval_tf_env.reset()        
 
         while not end_game_lock.locked() and not time_step.is_last():            
             action_step = saved_policy.action(time_step)
