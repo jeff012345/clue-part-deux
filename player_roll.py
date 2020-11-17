@@ -71,9 +71,12 @@ class PlayerRoll:
         for p in edge:
             all_positions.add(p)
 
+            if isinstance(p, RoomPosition):
+                # the path stops at the door
+                continue
+
             for conn in p.connections:
                 if conn not in all_positions and conn not in edge \
-                        and not (isinstance(p, RoomPosition) and isinstance(conn, RoomPosition)) \
                         and conn != self.player.board_position:
                     # haven't seen this node before
                     new_edge.add(conn)
