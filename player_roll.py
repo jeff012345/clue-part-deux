@@ -14,6 +14,8 @@ from definitions import RoomPosition
 class PlayerRoll:
     
     ### Static
+    SPACE_COLOR = (0, 0, 0)
+
     def _is_adjacent(p1, p2):
         return (abs(p1[0] - p2[0]) == 1 and p1[1] == p2[1]) \
             or (abs(p1[1] - p2[1]) == 1 and p1[0] == p2[0])
@@ -87,7 +89,7 @@ class PlayerRoll:
         if not self._rolling:
             return
         
-        self._drawn_rects = list(map(lambda rect: pygame.draw.rect(self.surface, (120, 120, 120), rect), self._rects)) 
+        self._drawn_rects = list(map(lambda rect: pygame.draw.rect(self.surface, PlayerRoll.SPACE_COLOR, rect), self._rects)) 
 
     def process_events(self, event):
         if not self._rolling:
