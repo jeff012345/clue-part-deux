@@ -22,8 +22,6 @@ board_width = 800
 display_width = log_book_width + board_width
 display_height = 1000
 
-
-
 def run(director: Director, run_game_lock: Lock, end_game_lock: Lock, human: HumanPlayer, turn_lock: Lock):
     pygame.init()   
 
@@ -109,7 +107,7 @@ def on_player_turn(manager, turn_data: HumanTurn, lock: Lock, start_turn_menu: S
         if turn_data.match is None:
             message = "No one showed a card!"
         else:
-            player_name = turn_data.showing_player.character.name
+            player_name = turn_data.showing_player.character.pretty()
             card: Enum = None
 
             if turn_data.match.character is not None:
@@ -119,7 +117,7 @@ def on_player_turn(manager, turn_data: HumanTurn, lock: Lock, start_turn_menu: S
             else:
                 card = turn_data.match.room
 
-            message = player_name + " has showed you " + card.value.name
+            message = player_name + " has showed you " + str(card)
 
         rect = create_modal_rect(display_width, display_height, 300, 160)
         EndTurnWindow(rect, manager, on_end_turn, "Guess Result", message)
@@ -135,7 +133,7 @@ def on_player_turn(manager, turn_data: HumanTurn, lock: Lock, start_turn_menu: S
         rect = create_modal_rect(display_width, display_height, 400, 200)
         EndTurnWindow(rect, manager, on_end_turn, "Accusation Result", message)
     elif isinstance(turn_data, OpponentGuess):
-        player_name = turn_data.opponent.character.name
+        player_name = turn_data.opponent.character.pretty()
         message = "Player " + player_name + " made a guess.<br><br >" + str(turn_data.guess)
         rect = create_modal_rect(display_width, display_height, 400, 200)
         EndTurnWindow(rect, manager, on_end_turn, "Opponent Guess", message)
@@ -147,7 +145,7 @@ def on_player_turn(manager, turn_data: HumanTurn, lock: Lock, start_turn_menu: S
         rect = create_modal_rect(display_width, display_height, 400, 200)
         EndTurnWindow(rect, manager, on_end_turn, "Dealt Cards", message)
     elif isinstance(turn_data, GameOver):
-        player_name = turn_data.winner.character.name
+        player_name = turn_data.winner.character.pretty()
         message = "You have lost! " + player_name + " is the winner!"
         message += "<br><strong>Solution:</strong> " + str(turn_data.solution)
 

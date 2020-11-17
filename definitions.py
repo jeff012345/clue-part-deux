@@ -6,6 +6,9 @@ import random
 def roll_dice() -> int:
 	return random.randint(1, 6)
 
+def pretty_print_enum(enum: Enum):
+	return " ".join(list(map(lambda s: s.lower().capitalize(), enum.name.split("_"))))
+
 class Room(Enum):
 	STUDY = 1
 	LIBRARY = 2
@@ -17,6 +20,9 @@ class Room(Enum):
 	LOUNGE = 8
 	BILLARD_ROOM = 9
 
+	def pretty(self):
+		return pretty_print_enum(self)
+
 class Character(Enum):
 	MRS_WHITE = 1
 	MRS_PEACOCK = 2
@@ -24,6 +30,9 @@ class Character(Enum):
 	COLONEL_MUSTARD = 4
 	MR_GREEN = 5
 	PROFESSOR_PLUM = 6
+
+	def pretty(self):
+		return pretty_print_enum(self)
 
 class Weapon(Enum):
 	CANDLESTICK = 1
@@ -33,10 +42,16 @@ class Weapon(Enum):
 	LEAD_PIPE = 5
 	KNIFE = 6
 
+	def pretty(self):
+		return pretty_print_enum(self)
+
 class CardType(Enum):
 	ROOM = 1
 	CHARACTER = 2
 	WEAPON = 3
+
+	def pretty(self):
+		return pretty_print_enum(self)
 
 class Position:
 	connections: List[Position]
@@ -109,7 +124,7 @@ class Card:
 		self.type = type
 
 	def __str__(self):
-		return self.value.name
+		return self.value.pretty()
 
 	def __repr__(self):
 		return self.value.name
@@ -149,9 +164,9 @@ class Solution:
 		return self.weapon is None and self.room is None and self.character is None
 
 	def __repr__(self):
-		c = 'None' if self.character is None else self.character.value.name
-		r = 'None' if self.room is None else self.room.value.name
-		w = 'None' if self.weapon is None else self.weapon.value.name
+		c = 'None' if self.character is None else self.character.value.pretty()
+		r = 'None' if self.room is None else self.room.value.pretty()
+		w = 'None' if self.weapon is None else self.weapon.value.pretty()
 		return c + " in the " + r + " with the " + w
 
 	def is_match(self, other: Solution):

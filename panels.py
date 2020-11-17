@@ -167,9 +167,9 @@ class MatchPickPanel:
         else:
             self._room_button.enable()
 
-        self._weapon_button.set_text(str(turn_data.guess.weapon.value.name))
-        self._character_button.set_text(str(turn_data.guess.character.value.name))
-        self._room_button.set_text(str(turn_data.guess.room.value.name))
+        self._weapon_button.set_text(str(turn_data.guess.weapon))
+        self._character_button.set_text(str(turn_data.guess.character))
+        self._room_button.set_text(str(turn_data.guess.room))
 
         self.panel.show()
 
@@ -208,7 +208,7 @@ class GuessPanel:
         text = dropdown.selected_option
 
         for item in items:
-            if text == item.name:
+            if text == item.pretty():
                 return Card(item, cardType)
 
         raise Exception("enum value not found " + text + " " + str(items))
@@ -271,7 +271,7 @@ class GuessPanel:
         UILabel(rect, text, self.manager, container=self.panel)
 
     def make_drop_down(self, enum: Enum, y_offset: int) -> UIDropDownMenu:
-        items = list(map(lambda i: i.name, enum))
+        items = list(map(lambda i: i.pretty(), enum))
         rect = pygame.Rect((int((self.width - 200) / 2), y_offset), (200, 25))
 
         if enum == Room:
@@ -284,9 +284,9 @@ class GuessPanel:
         self._guess_button.set_text('Guess!')
 
         rect = self._room_menu_rect.copy()
-        items = list(map(lambda i: i.name, Room))
+        items = list(map(lambda i: i.pretty(), Room))
         self._room_menu.kill()
-        self._room_menu = UIDropDownMenu(items, self.player.room.name, rect, self.manager, container=self.panel)
+        self._room_menu = UIDropDownMenu(items, self.player.room.pretty(), rect, self.manager, container=self.panel)
         #self._room_menu.rebuild()
         self._room_menu.disable()
 
