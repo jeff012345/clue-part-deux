@@ -72,10 +72,11 @@ class Director:
 	def __init__(self, end_game_lock: Lock, players: List[Player], turn_lock = None):
 		self.game_status = GameStatus.STARTING
 		self.player_by_character = dict()
+		self._human_player = None
 
 		self._turn_lock = turn_lock
 		self.end_game_lock = end_game_lock
-		self.players = players
+		self.players = players		
 
 		for p in self.players:
 			p.director = self

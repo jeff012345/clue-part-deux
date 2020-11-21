@@ -102,7 +102,7 @@ class Board:
 
 	def room_paths_from_room(start: Room, rooms: List[Room]) -> RoomPath:
 		#print("Find path from" + str(start) + " to " + str(rooms))
-		return list(map(lambda goal: Board.path_from_room_to_room(start, goal), rooms));
+		return list(map(lambda goal: Board.path_from_room_to_room(start, goal), rooms))
 
 	def path_from_room_to_room(start: Room, goal: Room) -> RoomPath:
 		start = Board.ROOM_POSITIONS[start]

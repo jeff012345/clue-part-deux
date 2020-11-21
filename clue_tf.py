@@ -27,6 +27,7 @@ from tf_agents.trajectories import trajectory
 from tf_agents.utils import common
 
 from clue_tf_env import ClueGameEnv
+from clue_room_tf_env import ClueGameRoomEnv
 
 tf.compat.v1.enable_v2_behavior()
 
@@ -96,8 +97,8 @@ fc_layer_params = (1000,500,250)
 #train_py_env = suite_gym.load(env_name)
 #eval_py_env = suite_gym.load(env_name)
 
-train_py_env = ClueGameEnv()
-eval_py_env = ClueGameEnv()
+train_py_env = ClueGameRoomEnv() #ClueGameEnv()
+eval_py_env = ClueGameRoomEnv() #ClueGameEnv()
 
 train_env = tf_py_environment.TFPyEnvironment(train_py_env)
 eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)

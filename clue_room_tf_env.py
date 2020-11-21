@@ -8,9 +8,10 @@ import collections
 
 from Clue import Director, GameStatus, GameEvent, GuessEvent
 from player import Player, NaiveComputerPlayer, PlayerAction
-from ai_players import RLPlayerTrainer, RLPlayer
-from definitions import CardType, Card, Weapon, Character
-from stat_tracker import StatTracker
+from ai_players import RLPlayerRoomTrainer, RLPlayer
+from definitions import CardType, Card, Weapon, Character, Room, RoomPosition
+from stat_tracker import RoomTracker, CardStat
+from paths import Board
 
 from threading import Lock
 
@@ -25,12 +26,7 @@ from tf_agents.trajectories import time_step as ts
 tf.compat.v1.enable_v2_behavior()
 #tf.keras.backend.set_floatx('float64')
 
-class ClueGameEnv(py_environment.PyEnvironment):
-
-    #MIN_Q = -144
-    #MAX_Q = -1
-    MIN_Q = -12
-    MAX_Q = 0
+class ClueGameRoomEnv(py_environment.PyEnvironment):
 
     _max_tries: int
     _num_of_cards: int
@@ -38,29 +34,30 @@ class ClueGameEnv(py_environment.PyEnvironment):
     _players: List[Player]
     _clue: Director
     _ai_player: RLPlayer
-    _stat_tracker: StatTracker   
+    _stat_tracker: RoomTracker   
 
     def __init__(self, eval = False, director = None):
-        self._num_of_cards = 6 + 6
-        self._num_of_combos = 6 * 6
+        self._num_of_cards = 9
+        self._num_of_actions = self._num_of_cards
 
-        self._max_tries = self._num_of_combos * 2
+        self._max_tries = 100
 
         self._action_spec = array_spec.BoundedArraySpec(shape=(), 
                                                         dtype=np.int32, 
                                                         minimum=0, 
-                                                        maximum=self._num_of_combos - 1, 
+                                                        maximum=self._num_of_actions - 1, 
                                                         name='action')
 
-        obv_cnt = self._num_of_cards + StatTracker.VALUE_COUNT
+        # knowns  = 9
+        # card stats = 9 * 2
+        # room_distance = 9
+        obv_cnt = self._num_of_cards * 2 + self._num_of_cards * CardStat.COUNT
         self._observation_spec = array_spec.BoundedArraySpec(shape=(obv_cnt,), 
                                                              dtype=np.float64, 
                                                              minimum=0, 
                                                              name='observation')
        
         self.__init_clue__(eval, director)
-        # this might break things
-        #self._reset()
 
     def __init_clue__(self, eval, director):
         if director is not None:
@@ -72,7 +69,7 @@ class ClueGameEnv(py_environment.PyEnvironment):
             if eval:
                 self._ai_player = RLPlayer()
             else:
-                self._ai_player = RLPlayerTrainer()
+                self._ai_player = RLPlayerRoomTrainer()
 
             self._players = [
 		        NaiveComputerPlayer(),
@@ -89,7 +86,7 @@ class ClueGameEnv(py_environment.PyEnvironment):
         # for the stat tracker
         self._clue.register(GameEvent.GUESS, self._handle_guess_event)
 
-        print("Clue initialized!")
+        print("Clue Room initialized!")
 
     def action_spec(self):
         return self._action_spec
@@ -101,7 +98,7 @@ class ClueGameEnv(py_environment.PyEnvironment):
         # Game Status = ???        
         self._tries = 0
         self._episode_ended = False
-        self._stat_tracker = StatTracker(len(self._players))
+        self._stat_tracker = RoomTracker(len(self._players))
 
         self._clue.new_game()
         self._update_state()
@@ -112,11 +109,31 @@ class ClueGameEnv(py_environment.PyEnvironment):
 
     def _update_state(self):
         arrs = (
-            self._ai_player.log_book.weapons, \
-            self._ai_player.log_book.characters, \
-            self._stat_tracker.stat_array() \
+            self._ai_player.log_book.rooms, \
+            self._stat_tracker.stat_array(), \
+            self._room_distances()
         )
         self._state = np.concatenate(arrs, axis=None)#.astype(np.float64)
+
+    def _room_distances(self) -> List[np.float64]:
+        distances = np.empty((9,), dtype=np.float64)
+
+        p = self._ai_player.position
+        if p is None:
+            p = Board.ROOM_POSITIONS[self._ai_player.room]
+        else:
+            p = Board.get(p[0], p[1])
+
+        i = 0
+        for room in Room:
+            if isinstance(p, RoomPosition) and room == p.room:
+                distances[i] = np.float64(0)
+            else:
+                path = Board.find_path(p, Board.ROOM_POSITIONS[room])
+                distances[i] = np.float64(path.distance)
+            i += 1
+
+        return distances
 
     def _step(self, action):
         if self._episode_ended:
@@ -124,76 +141,50 @@ class ClueGameEnv(py_environment.PyEnvironment):
             # a new episode.
             return self.reset()               
 
-        # take turns until the AI player needs to guess
-        self._take_turns_until_guess()
+        # take turns until the AI player needs take its turn
+        self._clue.take_turns_until_player(self._ai_player)
         
         if self._clue.game_status == GameStatus.ENDED:
             # someone won, terminate
-            self._episode_ended = True            
+            self._episode_ended = True
             return ts.termination(self._state, self._calc_reward())
         
-        self._guess(action)
+        #self._guess(action)
+        self._set_room(action)
 
         self._update_state()
 
-        if self._tries == self._max_tries:
-            raise Exception("game took too long")
+        if self._clue.game_status == GameStatus.ENDED or self._tries == self._max_tries:
+            # AI player won
+            self._episode_ended = True
+            return ts.termination(self._state, self._calc_reward())
 
         return ts.transition(self._state, reward=0.0, discount=1.0)
 
     # max reward = -1 * num_of_cards
     def _calc_reward(self) -> int:
         # newer
-        #if self._clue.winner == self._ai_player:
-        #    return 0
+        if self._clue.winner == self._ai_player:
+            return 0
         
-        ##better if you find them in fewer turns. Points per turn per card?
-        #log_book = self._ai_player.log_book
-        #reward = (np.sum(log_book.weapons) + np.sum(log_book.characters)) - 12
-        #return int(reward) * 10
+        #better if you find them in fewer turns. Points per turn per card?
+        reward = np.sum(self._ai_player.log_book.rooms) - 9
+        return int(reward) * 10
 
         # original
-        if self._clue.winner == self._ai_player:
+        #if self._clue.winner == self._ai_player:
             # AI player won
-            return -1 * self._tries
+        #    return -1 * self._tries
             
         # AI player lost the game, make this worse
-        return -2 * self._max_tries
+        #return -2 * self._max_tries          
 
-    def _take_turns_until_guess(self):
-        player_action = None
-        while player_action is None:
-            # other players take a turn
-            self._clue.take_turns_until_player(self._ai_player)
-
-            if self._clue.game_status == GameStatus.ENDED:
-                # another player has won
-                #print("another player won")
-                break
-
-            player_action = self._ai_player.next_turn_action()
-
-            if player_action == PlayerAction.GUESS:
-                break
-
-            # take the AI player turn
-            self._clue.player_take_turn(self._ai_player)
-            player_action = None
-
-            if self._clue.game_status == GameStatus.ENDED:
-                # AI player won
-                #print("AI player won")
-                break
-
-    def _guess(self, action):
+    def _set_room(self, action):
         self._tries += 1
+        
+        self._ai_player.room_guess = Card(Room(action + 1), CardType.ROOM)
 
-        character_ordinal = (math.floor(action / 6) % 6) + 1
-        weapon_ordinal = (action % 6) + 1
-
-        self._ai_player.weapon_guess = Card(Weapon(weapon_ordinal), CardType.WEAPON)
-        self._ai_player.character_guess = Card(Character(character_ordinal), CardType.CHARACTER)
-        self._ai_player.make_guess()
+        self._ai_player.take_turn()
         self._clue.next_player()
 
     def _handle_guess_event(self, event: GuessEvent):
@@ -201,7 +192,7 @@ class ClueGameEnv(py_environment.PyEnvironment):
             self._stat_tracker.log_guess(event.solution, event.skipped_players)
 
 if __name__ == "__main__":
-    environment = ClueCardCategoryEnv()
+    environment = ClueGameRoomEnv()
     utils.validate_py_environment(environment, episodes=5)
 
 

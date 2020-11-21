@@ -151,7 +151,7 @@ class LogBook:
 
 		if self.solution.room is None and not self.log_book[solution.room]:
 			self.solution.room = solution.room
-			self.rooms = np.ones((6,), dtype=np.int32)
+			self.rooms = np.ones((9,), dtype=np.int32)
 			self.rooms[solution.character.value.value - 1] = 0
 
 	def __repr__(self):
@@ -168,6 +168,12 @@ class Player:
 
 	def __init__(self):
 		pass
+
+	def pick_card_to_show(self, match: Solution, guess: Solution) -> Solution:
+		raise Exception('Not Implemented')
+
+	def take_turn(self, action: PlayerAction = None):		
+		raise Exception('Not Implemented')
 
 	def reset(self):
 		self.hand = Hand()
@@ -190,12 +196,6 @@ class Player:
 			return None
 
 		return self.pick_card_to_show(match, guess)
-
-	def pick_card_to_show(self, match: Solution, guess: Solution) -> Solution:
-		raise Exception('Not Implemented')
-
-	def take_turn(self, action: PlayerAction = None):		
-		raise Exception('Not Implemented')
 
 	def move_path(self, roll: int, room_path: RoomPath):
 		if roll < room_path.distance:
@@ -268,7 +268,7 @@ class NaiveComputerPlayer(Player):
 
 	# override
 	def take_turn(self, action: PlayerAction = None):
-		print("NaiveComputerPlayer: " + str(self.character) + " taking turn")
+		#print("NaiveComputerPlayer: " + str(self.character) + " taking turn")
 		action = action if action is not None else self.next_turn_action()
 
 		if action == PlayerAction.ACCUSATION:

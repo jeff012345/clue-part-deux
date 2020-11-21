@@ -27,13 +27,13 @@ class StatTracker:
 
         self._stats = dict()
         for card in Deck.static_deck:
-            if card.type != CardType.ROOM:
+            if card.type == CardType.ROOM:
                 self._stats[card] = CardStat()     
 
     def log_guess(self, solution: Solution, skipped_players: int):
         self._log_card(solution.character, skipped_players)
         self._log_card(solution.weapon, skipped_players)
-        #self._log_card(solution.room, skipped_players)
+        self._log_card(solution.room, skipped_players)
 
     def _log_card(self, card: Card, skipped_players: int):
         stats: CardStat = self._stats[card]
@@ -46,7 +46,7 @@ class StatTracker:
         return self._stats[card]
 
     def stat_array(self):
-        stats = np.empty((StatTracker.VALUE_COUNT,), dtype=np.float64)
+        stats = np.empty((self._num_of_stats(),), dtype=np.float64)
 
         i = 0
         for card, stat in self._stats.items():
@@ -56,3 +56,19 @@ class StatTracker:
             i += 2
 
         return stats
+
+    def _num_of_stats(self):
+        return StatTracker.VALUE_COUNT
+
+class RoomTracker(StatTracker):
+
+    def __init__(self, num_of_players: int):
+        super().__init__(num_of_players)
+
+    # override
+    def log_guess(self, solution: Solution, skipped_players: int):
+        self._log_card(solution.room, skipped_players)
+
+    # override
+    def _num_of_stats(self):
+        return 9 * CardStat.COUNT
