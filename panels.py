@@ -13,7 +13,7 @@ def create_modal_rect(screen_width: int, screen_height: int, width: int, height:
     top_offset = round((screen_height / 2) - (height / 2))
     left_offset = round((screen_width / 2) - (width / 2))
 
-    return pygame.Rect((top_offset, left_offset), (width, height))
+    return pygame.Rect((left_offset, top_offset), (width, height))
 
 class StartTurnPanel:
 
