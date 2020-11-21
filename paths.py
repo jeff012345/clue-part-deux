@@ -1,7 +1,9 @@
 from __future__ import annotations
-from definitions import *
 from typing import List, Tuple
 from itertools import chain
+import numpy as np
+
+from definitions import *
 from astar import a_star_search
 
 board_spaces = [
@@ -87,6 +89,7 @@ class Board:
 
 	BOARD_POSITIONS: List[List[Position]] = None
 	ROOM_POSITIONS: Dict[Room, RoomPosition] = None
+	ROOM_DISTANCES: Dict[Position, List[np.float64]] = None
 
 	def room_paths_from_position(row: int, col: int, rooms: List[Room]) -> List[RoomPath]:
 		start = Board.BOARD_POSITIONS[row][col]
@@ -143,6 +146,36 @@ class Board:
 		else:
 			raise Exception("shouldn't be here")
 
+	def calculate_room_distances():
+		import time
+		start_time = time.time()
+
+		print("Calculate room positions - START")
+
+		Board.ROOM_DISTANCES = dict()
+
+		for row in Board.BOARD_POSITIONS:
+			for position in row:
+				if position is not None:
+					Board.ROOM_DISTANCES[position] = Board._calculate_room_distances_from_start(position)
+
+		end_time = time.time()
+		print("Calculate room positions - COMPLETE - Eslaped = " + str(end_time - start_time))
+
+	def _calculate_room_distances_from_start(start: Position) -> List[np.float64]:
+		distances = np.empty((9,), dtype=np.float64)
+
+		i = 0
+		for room in Room:
+			if isinstance(start, RoomPosition) and room == start.room:
+				distances[i] = np.float64(0)
+			else:
+				path = Board.find_path(start, Board.ROOM_POSITIONS[room])
+				distances[i] = np.float64(path.distance)
+			i += 1
+
+		return distances
+
 def find_connections(row: int, col: int) -> List[Tuple[int, int]]:
 	if board_spaces[row][col] == 0:
 		raise Exception(f"Position (${row},${col}) is not valid")
@@ -167,10 +200,6 @@ def find_connections(row: int, col: int) -> List[Tuple[int, int]]:
 
 	# board_spaces[row][col] == 1, only 1 and 2 are valid
 	return list(filter(lambda x: board_spaces[x[0]][x[1]] == 1 or board_spaces[x[0]][x[1]] == 2, possibilities))
-
-def find_room_for_door_position():
-	#not needed
-	pass
 
 ## create position objects for each
 board_positions: List[List[Position]] = []

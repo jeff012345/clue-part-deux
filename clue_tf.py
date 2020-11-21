@@ -87,7 +87,7 @@ log_interval = 25 # @param {type:"integer"}
 num_eval_episodes = 25 # @param {type:"integer"}
 eval_interval = 200 # @param {type:"integer"}
 
-fc_layer_params = (1000,500,250)
+fc_layer_params = (1000,)
 
 ##
 ## environment setup

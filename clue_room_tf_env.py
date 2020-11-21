@@ -40,7 +40,7 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
         self._num_of_cards = 9
         self._num_of_actions = self._num_of_cards
 
-        self._max_tries = 100
+        self._max_tries = 40
 
         self._action_spec = array_spec.BoundedArraySpec(shape=(), 
                                                         dtype=np.int32, 
@@ -56,7 +56,7 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
                                                              dtype=np.float64, 
                                                              minimum=0, 
                                                              name='observation')
-       
+        Board.calculate_room_distances()
         self.__init_clue__(eval, director)
 
     def __init_clue__(self, eval, director):
@@ -116,24 +116,33 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
         self._state = np.concatenate(arrs, axis=None)#.astype(np.float64)
 
     def _room_distances(self) -> List[np.float64]:
-        distances = np.empty((9,), dtype=np.float64)
-
         p = self._ai_player.position
         if p is None:
             p = Board.ROOM_POSITIONS[self._ai_player.room]
         else:
             p = Board.get(p[0], p[1])
 
-        i = 0
-        for room in Room:
-            if isinstance(p, RoomPosition) and room == p.room:
-                distances[i] = np.float64(0)
-            else:
-                path = Board.find_path(p, Board.ROOM_POSITIONS[room])
-                distances[i] = np.float64(path.distance)
-            i += 1
+        return Board.ROOM_DISTANCES[p]
 
-        return distances
+    #def _room_distances(self) -> List[np.float64]:
+    #    distances = np.empty((9,), dtype=np.float64)
+
+    #    p = self._ai_player.position
+    #    if p is None:
+    #        p = Board.ROOM_POSITIONS[self._ai_player.room]
+    #    else:
+    #        p = Board.get(p[0], p[1])
+
+    #    i = 0
+    #    for room in Room:
+    #        if isinstance(p, RoomPosition) and room == p.room:
+    #            distances[i] = np.float64(0)
+    #        else:
+    #            path = Board.find_path(p, Board.ROOM_POSITIONS[room])
+    #            distances[i] = np.float64(path.distance)
+    #        i += 1
+
+    #    return distances
 
     def _step(self, action):
         if self._episode_ended:
@@ -154,18 +163,23 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
 
         self._update_state()
 
-        if self._clue.game_status == GameStatus.ENDED or self._tries == self._max_tries:
+        if self._clue.game_status == GameStatus.ENDED:
             # AI player won
+            print("AI Player Won!")
             self._episode_ended = True
             return ts.termination(self._state, self._calc_reward())
+
+        if self._tries == self._max_tries:
+            return ts.termination(self._state, -90)
 
         return ts.transition(self._state, reward=0.0, discount=1.0)
 
     # max reward = -1 * num_of_cards
     def _calc_reward(self) -> int:
         # newer
-        if self._clue.winner == self._ai_player:
-            return 0
+        #if self._clue.winner == self._ai_player:
+            # the AI won
+        #    return 0
         
         #better if you find them in fewer turns. Points per turn per card?
         reward = np.sum(self._ai_player.log_book.rooms) - 9
@@ -191,9 +205,12 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
         if event.player != self._ai_player:
             self._stat_tracker.log_guess(event.solution, event.skipped_players)
 
-if __name__ == "__main__":
+def main():
     environment = ClueGameRoomEnv()
     utils.validate_py_environment(environment, episodes=5)
+
+if __name__ == "__main__":
+    main()
 
 
 

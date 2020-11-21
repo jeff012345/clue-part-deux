@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{f8b77ffa-60d7-49e6-ab74-6f911f5ea268}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>clue_tf.py</StartupFile>
+    <StartupFile>clue_room_tf_env.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
