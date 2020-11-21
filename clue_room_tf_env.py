@@ -124,26 +124,6 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
 
         return Board.ROOM_DISTANCES[p]
 
-    #def _room_distances(self) -> List[np.float64]:
-    #    distances = np.empty((9,), dtype=np.float64)
-
-    #    p = self._ai_player.position
-    #    if p is None:
-    #        p = Board.ROOM_POSITIONS[self._ai_player.room]
-    #    else:
-    #        p = Board.get(p[0], p[1])
-
-    #    i = 0
-    #    for room in Room:
-    #        if isinstance(p, RoomPosition) and room == p.room:
-    #            distances[i] = np.float64(0)
-    #        else:
-    #            path = Board.find_path(p, Board.ROOM_POSITIONS[room])
-    #            distances[i] = np.float64(path.distance)
-    #        i += 1
-
-    #    return distances
-
     def _step(self, action):
         if self._episode_ended:
             # The last action ended the episode. Ignore the current action and start
@@ -163,35 +143,40 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
 
         self._update_state()
 
-        if self._clue.game_status == GameStatus.ENDED:
+        if self._clue.game_status == GameStatus.ENDED or self._tries == self._max_tries:
             # AI player won
-            print("AI Player Won!")
+            #print("AI Player Won!")
             self._episode_ended = True
             return ts.termination(self._state, self._calc_reward())
-
-        if self._tries == self._max_tries:
-            return ts.termination(self._state, -90)
 
         return ts.transition(self._state, reward=0.0, discount=1.0)
 
     # max reward = -1 * num_of_cards
     def _calc_reward(self) -> int:
-        # newer
-        #if self._clue.winner == self._ai_player:
+        if self._tries == self._max_tries:
+            return -90
+
+        if self._clue.winner == self._ai_player:
             # the AI won
-        #    return 0
-        
-        #better if you find them in fewer turns. Points per turn per card?
+            return 0
+
         reward = np.sum(self._ai_player.log_book.rooms) - 9
         return int(reward) * 10
 
         # original
         #if self._clue.winner == self._ai_player:
-            # AI player won
+        #    # AI player won
         #    return -1 * self._tries
             
-        # AI player lost the game, make this worse
-        #return -2 * self._max_tries          
+        ## AI player lost the game, make this worse
+        #return -1 * self._max_tries
+
+        #if self._clue.winner == self._ai_player:
+        #    # AI player won
+        #    return 1
+
+        #eliminated = np.sum(self._ai_player.log_book.rooms)
+        #return eliminated / self._tries
 
     def _set_room(self, action):
         self._tries += 1

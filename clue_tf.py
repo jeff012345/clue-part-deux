@@ -28,12 +28,15 @@ from tf_agents.utils import common
 
 from clue_tf_env import ClueGameEnv
 from clue_room_tf_env import ClueGameRoomEnv
+from ai_players import RLPlayer
 
 tf.compat.v1.enable_v2_behavior()
 
 ## utility functions
 def compute_avg_return(environment, policy, num_episodes=10):
     total_return = 0.0
+
+    wins = 0
 
     for _ in range(num_episodes):
         time_step = environment.reset()
@@ -45,6 +48,11 @@ def compute_avg_return(environment, policy, num_episodes=10):
             episode_return += time_step.reward
 
         total_return += episode_return
+        
+        if isinstance(eval_py_env._clue.winner, RLPlayer):
+            wins += 1
+
+    print("Win Ratio = " + str(wins / num_episodes))
 
     avg_return = total_return / num_episodes
     return avg_return.numpy()[0]
@@ -78,7 +86,7 @@ def collect_episode(environment, policy, num_episodes):
 ##
 ## Hyperparameters
 ##
-num_iterations = 15000 # @param {type:"integer"}
+num_iterations = 25 # @param {type:"integer"}
 collect_episodes_per_iteration = 15 # @param {type:"integer"}
 replay_buffer_capacity = 15000 # @param {type:"integer"}
 
