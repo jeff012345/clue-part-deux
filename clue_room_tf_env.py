@@ -153,14 +153,15 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
 
     # max reward = -1 * num_of_cards
     def _calc_reward(self) -> int:
-        if self._tries == self._max_tries:
-            return -90
+        #if self._tries == self._max_tries:
+        #    return -90
 
         if self._clue.winner == self._ai_player:
             # the AI won
             return 0
 
-        reward = np.sum(self._ai_player.log_book.rooms) - 9
+        rooms_in_hand = len(self._ai_player.hand.rooms)
+        reward = np.sum(self._ai_player.log_book.rooms) - rooms_in_hand - 9        
         return int(reward) * 10
 
         # original
