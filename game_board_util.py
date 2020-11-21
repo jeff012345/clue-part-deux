@@ -32,10 +32,16 @@ class PlayerPiece:
         pygame.draw.circle(self.surface, player_colors[self.player.character], pos, piece_radius)
 
 
-top_pad = 17.5
+top_pad = 25
 left_pad = 20
 
+board_width = 882 - 55
+board_height = 865 - 50
+
+scale_width = board_width / 23.85
+scale_height = board_height / 24.9
+
 def scale_position(pos: Tuple[int, int]) -> Tuple[int, int]:
-    row = int(round(top_pad + (pos[0] * 28) + piece_radius))
-    col = int(round(left_pad + (pos[1] * 29.583333) + piece_radius))
+    row = top_pad + int(round((pos[0] + 0.5) * scale_height)) 
+    col = left_pad + int(round((pos[1] + 0.5) * scale_width))
     return (col, row)

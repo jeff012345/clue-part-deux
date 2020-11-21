@@ -31,7 +31,12 @@ class LogBookPanel:
 
         height = self._create_section("Chacater", Character, 20)
         height = self._create_section("Room", Room, height)
-        self._create_section("Weapon", Weapon, height)      
+        self._create_section("Weapon", Weapon, height)
+
+        self.panel.hide()
+
+    def show(self):
+        self.panel.show()
 
     def process_events(self, event):
         if event.type == pygame.MOUSEBUTTONUP:

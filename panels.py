@@ -62,7 +62,7 @@ class StartTurnPanel:
         rect = pygame.Rect((50, y_offset + 25), (200, 50))
         self._accuse_button = UIButton(rect, 'Accuse', manager, container=self.panel)
 
-        self.hide()   
+        self.hide()
 
     def show(self):
         if self.player.room is None:
