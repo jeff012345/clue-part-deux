@@ -161,8 +161,8 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
             return 0
 
         rooms_in_hand = len(self._ai_player.hand.rooms)
-        reward = np.sum(self._ai_player.log_book.rooms) - rooms_in_hand - 9        
-        return int(reward) * 10
+        reward = ((np.sum(self._ai_player.log_book.rooms) - rooms_in_hand) / (9 - rooms_in_hand)) - 1
+        return int(reward) * 100
 
         # original
         #if self._clue.winner == self._ai_player:
