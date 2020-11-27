@@ -1,6 +1,8 @@
 from typing import List
-
 import os
+import time
+from threading import Semaphore, Lock
+
 from player import NaiveComputerPlayer
 from definitions import Card, Room, CardType, Character
 
@@ -65,5 +67,48 @@ class RLPlayerRoomTrainer(RLPlayer):
 	def decide_weapon_guess(self) -> Card:
 		return self.director.solution.weapon
 
-	
-	
+
+class DuelAiPlayer(RLPlayer):
+
+	def __init__(self, guess_step_lock: Lock, room_step_lock: Lock):
+		super().__init__()
+
+		self._guess_step_lock = guess_step_lock
+		self._room_step_lock = room_step_lock
+
+	# override
+	def take_turn(self):
+		if self.remaining_path is not None:
+			super().take_turn()
+			return
+
+		print("starting ai turn")
+
+		# starting turn
+		# release to update the guesses
+		self._guess_step_lock.release()
+		self._room_step_lock.release()
+
+		while not self._guess_step_lock.locked() or not self._room_step_lock.locked(): 
+			# wait for other thread to get the lock
+			pass
+
+		print("waiting for guesses to be updated")
+
+		# wait for guesses to be updated
+		self._guess_step_lock.acquire() 
+		self._room_step_lock.acquire()
+
+		print("ai taking turn")
+
+		super().take_turn()
+
+		print("ai turn done")
+
+
+	# overrride
+	#def make_guess(self):
+		
+		#super().make_guess()
+
+		

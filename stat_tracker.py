@@ -24,16 +24,17 @@ class StatTracker:
 
     def __init__(self, num_of_players: int):
         self._num_of_players = num_of_players
+        self._init_stats()
 
+    def _init_stats(self):
         self._stats = dict()
         for card in Deck.static_deck:
-            if card.type == CardType.ROOM:
-                self._stats[card] = CardStat()     
+            if card.type != CardType.ROOM:
+                self._stats[card] = CardStat()
 
     def log_guess(self, solution: Solution, skipped_players: int):
         self._log_card(solution.character, skipped_players)
         self._log_card(solution.weapon, skipped_players)
-        self._log_card(solution.room, skipped_players)
 
     def _log_card(self, card: Card, skipped_players: int):
         stats: CardStat = self._stats[card]
@@ -64,6 +65,13 @@ class RoomTracker(StatTracker):
 
     def __init__(self, num_of_players: int):
         super().__init__(num_of_players)
+
+    #override
+    def _init_stats(self):
+        self._stats = dict()
+        for card in Deck.static_deck:
+            if card.type == CardType.ROOM:
+                self._stats[card] = CardStat()
 
     # override
     def log_guess(self, solution: Solution, skipped_players: int):

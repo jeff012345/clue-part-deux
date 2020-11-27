@@ -92,6 +92,9 @@ class Director:
 		self._event_handlers[event].append(func)
 
 	def new_game(self):
+		if self.game_status != GameStatus.STARTING:
+			return
+
 		self.winner = None
 		self.game_status = GameStatus.READY
 
@@ -126,6 +129,22 @@ class Director:
 					return
 
 		self.game_status = GameStatus.ENDED
+
+	def play_auto_game_with_lock(self, end_game_lock: Lock):
+		if self.game_status != GameStatus.INITIALIZED:
+			raise Exception("Game not setup")
+
+		self.game_status = GameStatus.RUNNING
+
+		while not self._end_game() and not end_game_lock.locked():
+			self.active_player.take_turn()
+			self.next_player()
+
+		self.game_status = GameStatus.ENDED
+
+		if self.winner != None and self.winner != self._human_player:
+			self._human_player.on_turn(GameOver(self.winner, self.solution))
+			self._wait_for_user()
 
 	def take_turns_until_player(self, stop_player: Player):
 		if self._turn_lock is not None:
@@ -176,7 +195,6 @@ class Director:
 
 	def player_take_turn(self, player: Player):
 		player.take_turn()
-		#time.sleep(1)
 
 		if self._end_game():
 			self.game_status = GameStatus.ENDED

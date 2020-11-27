@@ -13,7 +13,7 @@ from definitions import CardType, Card, Weapon, Character, Room, RoomPosition
 from stat_tracker import RoomTracker, CardStat
 from paths import Board
 
-from threading import Lock
+from threading import Lock, Semaphore
 
 from tf_agents.environments import py_environment
 from tf_agents.environments import tf_environment
@@ -139,8 +139,9 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
             return ts.termination(self._state, self._calc_reward())
         
         #self._guess(action)
-        self._set_room(action)
+        self._turn(action)
 
+        #TODO this state doesn't update after an action
         self._update_state()
 
         if self._clue.game_status == GameStatus.ENDED or self._tries == self._max_tries:
@@ -179,17 +180,52 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
         #eliminated = np.sum(self._ai_player.log_book.rooms)
         #return eliminated / self._tries
 
-    def _set_room(self, action):
-        self._tries += 1
-        
+    def _set_room(self, action):        
         self._ai_player.room_guess = Card(Room(action + 1), CardType.ROOM)
 
+    def _turn(self, action):
+        self._tries += 1
+        self._set_room(action)
         self._ai_player.take_turn()
         self._clue.next_player()
 
     def _handle_guess_event(self, event: GuessEvent):
         if event.player != self._ai_player:
             self._stat_tracker.log_guess(event.solution, event.skipped_players)
+
+class ClueGameRoomEnvImplementation(ClueGameRoomEnv):
+
+    _ai_step_lock: Semaphore
+
+    def __init__(self, ai_step_lock: Lock, director: Director):
+        super().__init__(director=director)
+        self._ai_step_lock = ai_step_lock
+
+    # override
+    def _reset(self):
+        # Game Status = ???        
+        self._stat_tracker = RoomTracker(len(self._players))
+        self._update_state()
+        return ts.restart(self._state)
+
+    #Overrride
+    def _step(self, action):
+        self._set_room(action)
+        print("room guess set: " + str(self._ai_player.room_guess))
+        
+        self._ai_step_lock.release()
+
+        while not self._ai_step_lock.locked():
+            # wait for other thread to get the lock
+            pass
+
+        self._ai_step_lock.acquire()
+        
+        # turn is over
+        self._update_state()
+        print("room env state updated")
+
+        return ts.transition(self._state, reward=0.0, discount=1.0)
 
 def main():
     environment = ClueGameRoomEnv()

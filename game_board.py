@@ -6,7 +6,7 @@ import pygame_gui
 from player import *
 from ai_players import RLPlayer
 from Clue import Director, GameStatus
-from threading import Lock
+from threading import Lock, Condition, Barrier
 from log_book_ui import LogBookPanel
 from panels import *
 from game_board_util import scale_position, PlayerPiece

@@ -343,7 +343,7 @@ class NaiveComputerPlayer(Player):
 			return RoomPath(room, this_path)
 		else:
 			path = self.remaining_path
-			self.remaining_path = None			
+			self.remaining_path = None
 			return path				
 
 	def __repr__(self):
@@ -410,15 +410,17 @@ class GameOver(Interaction):
 class HumanPlayer(Player):
 
 	on_turn: Callable[[Interaction]]
+	_turn_lock: Lock
 
 	card_to_show: Solution
 
 	player_action: PlayerAction
-	solution: Solution
+	solution: Solution	
 
-	def __init__(self):
+	def __init__(self, turn_lock):
 		self.accusation = None
 		self.guess = None
+		self._turn_lock = turn_lock
 
 	# override
 	def show_card(self, guess: Solution) -> Solution:
@@ -444,6 +446,26 @@ class HumanPlayer(Player):
 		self.solution = None
 
 		self.on_turn(Interaction())
+
+		self._wait_for_user()
+
+		if self.player_action == PlayerAction.GUESS:
+			(match, skipped, showing_player) = self.director.make_guess(self, self.solution)
+			self.on_turn(GuessOutcome(match, showing_player))
+			self._wait_for_user()
+
+		elif self.player_action == PlayerAction.ACCUSATION:
+			correct = self.director.make_accusation(self, self.solution)
+			self.on_turn(AccusationOutcome(correct, self.solution))
+			self._wait_for_user()
+
+	def _wait_for_user(self):
+		# wait for other thread to get it. probably not needed
+		while not self._turn_lock.locked():
+			pass
+
+		self._turn_lock.acquire()
+		self._turn_lock.release()
 
 	def accuse(self, solution: Solution):
 		self.player_action = PlayerAction.ACCUSATION

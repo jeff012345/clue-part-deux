@@ -100,8 +100,8 @@ min_q_value = -100  # @param {type:"integer"}
 max_q_value = 0  # @param {type:"integer"}
 n_step_update = 2  # @param {type:"integer"}
 
-num_eval_episodes = 15 # @param {type:"integer"}
-eval_interval = 500 # @param {type:"integer"}
+num_eval_episodes = 25 # @param {type:"integer"}
+eval_interval = 250 # @param {type:"integer"}
 
 
 fc_layer_params = (1000,)

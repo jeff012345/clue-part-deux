@@ -1,6 +1,5 @@
 from typing import List
 
-
 import tensorflow as tf
 import numpy as np
 import math
@@ -12,7 +11,7 @@ from ai_players import RLPlayerTrainer, RLPlayer
 from definitions import CardType, Card, Weapon, Character
 from stat_tracker import StatTracker
 
-from threading import Lock
+from threading import Lock, Semaphore
 
 from tf_agents.environments import py_environment
 from tf_agents.environments import tf_environment
@@ -183,22 +182,60 @@ class ClueGameEnv(py_environment.PyEnvironment):
             if self._clue.game_status == GameStatus.ENDED:
                 # AI player won
                 #print("AI player won")
-                break
+                break    
 
     def _guess(self, action):
         self._tries += 1
 
+        self._set_guesses(action)
+        self._ai_player.make_guess()
+        self._clue.next_player()
+
+    def _set_guesses(self, action):
         character_ordinal = (math.floor(action / 6) % 6) + 1
         weapon_ordinal = (action % 6) + 1
 
         self._ai_player.weapon_guess = Card(Weapon(weapon_ordinal), CardType.WEAPON)
         self._ai_player.character_guess = Card(Character(character_ordinal), CardType.CHARACTER)
-        self._ai_player.make_guess()
-        self._clue.next_player()
 
     def _handle_guess_event(self, event: GuessEvent):
         if event.player != self._ai_player:
             self._stat_tracker.log_guess(event.solution, event.skipped_players)
+
+class ClueGameEnvImplementation(ClueGameEnv):
+
+    _ai_step_lock: Semaphore
+
+    def __init__(self, ai_step_lock: Lock, director: Director):
+        super().__init__(director=director)
+        self._ai_step_lock = ai_step_lock
+
+    # override
+    def _reset(self):
+        # Game Status = ???        
+        self._stat_tracker = StatTracker(len(self._players))
+        self._update_state()
+        return ts.restart(self._state)
+
+    #Overrride
+    def _step(self, action):
+        self._set_guesses(action)
+        print("weapon guess set: " + str(self._ai_player.weapon_guess))
+        print("character guess set: " + str(self._ai_player.character_guess))
+
+        self._ai_step_lock.release()
+
+        while not self._ai_step_lock.locked():
+            # wait for other thread to get the lock
+            pass
+
+        self._ai_step_lock.acquire()
+        
+        # turn is over
+        self._update_state()
+        print("guess env state updated")
+
+        return ts.transition(self._state, reward=0.0, discount=1.0)
 
 if __name__ == "__main__":
     environment = ClueCardCategoryEnv()
