@@ -1,4 +1,7 @@
-pygame
-tensorflow-gpu
+pygame==2.0.0
+pygame-gui
+tensorflow-gpu==2.1.0
 matplotlib
 ipython
+tf-agents
+tensorflow-probability==0.9.0

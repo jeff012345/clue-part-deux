@@ -29,12 +29,8 @@ from tf_agents.utils import common
 from clue_tf_env import ClueGameEnv
 from clue_room_tf_env import ClueGameRoomEnv
 from ai_players import RLPlayer
-from paths import Board
 
 tf.compat.v1.enable_v2_behavior()
-
-## cache this data
-Board.calculate_room_distances()
 
 ## utility functions
 def compute_avg_return(environment, policy, num_episodes=10):
@@ -92,12 +88,20 @@ def collect_episode(environment, policy, num_episodes):
 ##
 num_iterations = 5000 # @param {type:"integer"}
 collect_episodes_per_iteration = 10 # @param {type:"integer"}
-replay_buffer_capacity = 15000 # @param {type:"integer"}
+replay_buffer_capacity = 100000 # @param {type:"integer"}
 
-learning_rate = 1e-3 # @param {type:"number"}
-log_interval = 25 # @param {type:"integer"}
+batch_size = 64  # @param {type:"integer"}
+learning_rate = 1e-3  # @param {type:"number"}
+gamma = 0.99
+log_interval = 25  # @param {type:"integer"}
+
+num_atoms = 51  # @param {type:"integer"}
+min_q_value = -100  # @param {type:"integer"}
+max_q_value = 0  # @param {type:"integer"}
+n_step_update = 2  # @param {type:"integer"}
+
 num_eval_episodes = 25 # @param {type:"integer"}
-eval_interval = 200 # @param {type:"integer"}
+eval_interval = 250 # @param {type:"integer"}
 
 fc_layer_params = (1000,)
 
@@ -105,8 +109,8 @@ fc_layer_params = (1000,)
 ## environment setup
 ##
 
-train_py_env = ClueGameEnv()
-eval_py_env = ClueGameEnv()
+train_py_env = ClueGameRoomEnv()
+eval_py_env = ClueGameRoomEnv()
 
 train_env = tf_py_environment.TFPyEnvironment(train_py_env)
 eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
@@ -114,9 +118,10 @@ eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
 ##
 ## Setup Network
 ##
-actor_net = actor_distribution_network.ActorDistributionNetwork(
+categorical_q_net = categorical_q_network.CategoricalQNetwork(
     train_env.observation_spec(),
     train_env.action_spec(),
+    num_atoms=num_atoms,
     fc_layer_params=fc_layer_params)
 
 ##
@@ -127,12 +132,16 @@ optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
 
 train_step_counter = tf.compat.v2.Variable(0)
 
-agent = reinforce_agent.ReinforceAgent(
+agent = categorical_dqn_agent.CategoricalDqnAgent(
     train_env.time_step_spec(),
     train_env.action_spec(),
-    actor_network=actor_net,
+    categorical_q_network=categorical_q_net,
     optimizer=optimizer,
-    normalize_returns=True,
+    min_q_value=min_q_value,
+    max_q_value=max_q_value,
+    n_step_update=n_step_update,
+    td_errors_loss_fn=common.element_wise_squared_loss,
+    gamma=gamma,
     train_step_counter=train_step_counter)
 agent.initialize()
 
@@ -165,7 +174,15 @@ train_checkpointer = common.Checkpointer(
 if os.path.isdir(checkpoint_dir) and len(os.listdir(checkpoint_dir)) != 0:
     train_checkpointer.initialize_or_restore()
     train_step_counter = tf.compat.v1.train.get_global_step()
-    print("loading from checkpoint")  
+    print("loading from checkpoint")
+
+# Dataset generates trajectories with shape [BxTx...] where
+# T = n_step_update + 1.
+dataset = replay_buffer.as_dataset(
+    num_parallel_calls=3, sample_batch_size=batch_size,
+    num_steps=n_step_update + 1).prefetch(3)
+
+iterator = iter(dataset)
 
 # (Optional) Optimize by wrapping some of the code in a graph using TF function.
 agent.train = common.function(agent.train)
@@ -183,7 +200,7 @@ for _ in range(num_iterations):
     collect_episode(train_env, agent.collect_policy, collect_episodes_per_iteration)
 
     # Use data from the buffer and update the agent's network.
-    experience = replay_buffer.gather_all()
+    experience, unused_info = next(iterator)
     train_loss = agent.train(experience)
     replay_buffer.clear()
 
@@ -212,3 +229,5 @@ plt.show()
 policy_dir = os.path.join(".", 'policy')
 tf_policy_saver = policy_saver.PolicySaver(agent.policy)
 tf_policy_saver.save(policy_dir)
+
+print(str(returns))

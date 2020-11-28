@@ -1,7 +1,9 @@
 from __future__ import annotations
-from definitions import *
 from typing import List, Tuple
 from itertools import chain
+import numpy as np
+
+from definitions import *
 from astar import a_star_search
 
 board_spaces = [
@@ -87,36 +89,116 @@ class Board:
 
 	BOARD_POSITIONS: List[List[Position]] = None
 	ROOM_POSITIONS: Dict[Room, RoomPosition] = None
+	ROOM_TO_ROOM_PATHS: Dict[Room, Dict[Room, RoomPath]] = None
+	ROOM_PATHS: Dict[Position, Dict[Room, RoomPath]] = None
+	ROOM_DISTANCES: Dict[Position, List[np.float64]] = None
 
 	def room_paths_from_position(row: int, col: int, rooms: List[Room]) -> List[RoomPath]:
 		start = Board.BOARD_POSITIONS[row][col]
 
 		paths: List[RoomPath] = []
 		for room in rooms:
-			goal = Board.ROOM_POSITIONS[room]
-			path = Board.find_path(start, goal)
-			room_path = RoomPath(room, path.path)
+			#goal = Board.ROOM_POSITIONS[room]
+			#path = Board.find_path(start, goal)
+			#room_path = RoomPath(room, path.path)
+			room_path = Board.ROOM_PATHS[start][room]
 			paths.append(room_path)
 
 		return paths
 
 	def room_paths_from_room(start: Room, rooms: List[Room]) -> RoomPath:
 		#print("Find path from" + str(start) + " to " + str(rooms))
-		return list(map(lambda goal: Board.path_from_room_to_room(start, goal), rooms));
+		return list(map(lambda goal: Board.path_from_room_to_room(start, goal), rooms))
 
 	def path_from_room_to_room(start: Room, goal: Room) -> RoomPath:
-		start = Board.ROOM_POSITIONS[start]
-		goal = Board.ROOM_POSITIONS[goal]
+		return Board.ROOM_TO_ROOM_PATHS[start][goal]
 
-		path = Board.find_path(start, goal)
-		room_path = RoomPath(goal, path.path)
-		return room_path
+		#start = Board.ROOM_POSITIONS[start]
+		#goal = Board.ROOM_POSITIONS[goal]
+
+		#path = Board.find_path(start, goal)
+		#room_path = RoomPath(goal, path.path)
+		#return room_path
 
 	def find_path(start: Position, goal: Position) -> Path:
 		shortest_path = a_star_search(start, goal)
 		shortest_path.pop(0) #remove the start Position
 
 		return Path(shortest_path)
+
+	def is_room(row: int, col: int):
+		return isinstance(Board.BOARD_POSITIONS[row][col], RoomPosition)
+
+	def get(row: int, col: int) -> Position:
+		return Board.BOARD_POSITIONS[row][col]
+
+	def find_points(position: Position) -> List[Tuple[int, int]]:
+		coords = []
+
+		r = 0
+		for row in Board.BOARD_POSITIONS:
+			for p in row:
+				if p == position:
+					coords.append((r, c))
+				c += 1
+			r += 1
+
+	def coords_from_position(position) -> List[Tuple[int, int]]:
+		if isinstance(position, Space):
+			return [(position.row, position.col)]
+		elif isinstance(position, RoomPosition):
+			return list(map(lambda d: (d[0] - 1, d[1] - 1), doors[position.room]))
+		else:
+			raise Exception("shouldn't be here")
+
+	def calculate_room_distances():
+		if Board.ROOM_DISTANCES is not None:
+			return
+
+		import time
+		start_time = time.time()
+
+		print("Calculate room positions - START")
+
+		Board.ROOM_DISTANCES = dict()
+		Board.ROOM_PATHS = dict()
+		Board.ROOM_TO_ROOM_PATHS = dict()
+
+		for row in Board.BOARD_POSITIONS:
+			for position in row:
+				if position is not None:
+					Board.ROOM_DISTANCES[position] = Board._calculate_room_distances_from_start(position)
+
+				if isinstance(position, RoomPosition):
+					Board.ROOM_TO_ROOM_PATHS[position.room] = dict()
+					for room in Room:
+						if position.room == room:
+							continue
+
+						dest_room_pos = Board.ROOM_POSITIONS[room]
+						path = Board.find_path(position, dest_room_pos)
+						Board.ROOM_TO_ROOM_PATHS[position.room][room] = RoomPath(dest_room_pos, path.path)
+
+		end_time = time.time()
+		print("Calculate room positions - COMPLETE - Eslaped = " + str(end_time - start_time))
+
+	def _calculate_room_distances_from_start(start: Position) -> List[np.float64]:
+		distances = np.empty((9,), dtype=np.float64)
+
+		Board.ROOM_PATHS[start] = dict()
+
+		i = 0
+		for room in Room:
+			if isinstance(start, RoomPosition) and room == start.room:
+				distances[i] = np.float64(0)
+			else:
+				path = Board.find_path(start, Board.ROOM_POSITIONS[room])
+				Board.ROOM_PATHS[start][room] = RoomPath(room, path.path)
+				distances[i] = np.float64(path.distance)
+			i += 1
+
+		return distances
+
 
 def find_connections(row: int, col: int) -> List[Tuple[int, int]]:
 	if board_spaces[row][col] == 0:
@@ -142,10 +224,6 @@ def find_connections(row: int, col: int) -> List[Tuple[int, int]]:
 
 	# board_spaces[row][col] == 1, only 1 and 2 are valid
 	return list(filter(lambda x: board_spaces[x[0]][x[1]] == 1 or board_spaces[x[0]][x[1]] == 2, possibilities))
-
-def find_room_for_door_position():
-	#not needed
-	pass
 
 ## create position objects for each
 board_positions: List[List[Position]] = []

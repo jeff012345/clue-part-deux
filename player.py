@@ -4,6 +4,7 @@ from definitions import *
 from paths import RoomPath, Board
 import random
 import numpy as np
+from threading import Lock
 
 class PlayerAction(Enum):
 	ACCUSATION = 1
@@ -78,9 +79,9 @@ class LogBook:
 		self.log_book = dict()
 		self.solution = Solution(None, None, None)
 
-		self.weapons = np.zeros((6,), dtype=np.int32)
-		self.characters = np.zeros((6,), dtype=np.int32)
-		self.rooms = np.zeros((9,), dtype=np.int32)
+		self.weapons = np.zeros((6,), dtype=np.float64)
+		self.characters = np.zeros((6,), dtype=np.float64)
+		self.rooms = np.zeros((9,), dtype=np.float64)
 
 		for card in Deck.static_deck:
 			self.log_book[card] = False
@@ -150,17 +151,17 @@ class LogBook:
 
 		if self.solution.room is None and not self.log_book[solution.room]:
 			self.solution.room = solution.room
-			self.rooms = np.ones((6,), dtype=np.int32)
+			self.rooms = np.ones((9,), dtype=np.int32)
 			self.rooms[solution.character.value.value - 1] = 0
 
 	def __repr__(self):
 		return str(self.log_book)
 
 class Player:
-
 	director: Director
 	character: Character
 	position: Tuple[int, int]
+	board_position: Position
 	hand: Hand
 	log_book: LogBook
 	room: Room
@@ -168,23 +169,72 @@ class Player:
 	def __init__(self):
 		pass
 
+	def pick_card_to_show(self, match: Solution, guess: Solution) -> Solution:
+		raise Exception('Not Implemented')
+
+	def take_turn(self, action: PlayerAction = None):		
+		raise Exception('Not Implemented')
+
 	def reset(self):
 		self.hand = Hand()
 		self.log_book = LogBook()
 		self.room = None		
 		self.position = None
+		self.board_position = None
 		self.character = None
 
+	# deal card to player
 	def give_card(self, card: Card):
 		self.hand.add(card)
 		self.log_book.log(card)
 
+	# player has to decide which card to show to the guesser
 	def show_card(self, guess: Solution) -> Solution:
 		match = SolutionMatcher.compare_to_hand(self.hand, guess)
 
 		if match.is_empty():
 			return None
 
+		return self.pick_card_to_show(match, guess)
+
+	def move_path(self, roll: int, room_path: RoomPath):
+		if roll < room_path.distance:
+			raise Exception("Path is longer than roll")
+
+		for p in room_path.path:
+			self.move(p)
+	
+	def move(self, p: Position):
+		self.board_position = p
+
+		if isinstance(p, Space):
+			self.room = None
+			self.position = (p.row, p.col)
+		elif isinstance(p, RoomPosition):
+			self.enter_room(p.room)
+		else:
+			raise Expection("wat?")
+
+	def enter_room(self, room: Room):
+		self.room = room
+		self.position = None
+
+	def __repr__(self):
+		return str(self.character.name)
+
+class NaiveComputerPlayer(Player):
+
+	remaining_path: RoomPath
+
+	def __init__(self):
+		super().__init__()	
+		self.remaining_path = None
+
+	def enter_room(self, room):
+		super().enter_room(room)
+		self.remaining_path = None
+
+	def pick_card_to_show(self, match: Solution, guess: Solution) -> Solution:
 		# only have to show one card
 		if match.character is not None:
 			match.weapon = None
@@ -204,7 +254,7 @@ class Player:
 		guess.weapon = self.decide_weapon_guess()
 		guess.character = self.decide_character_guess()
 
-		(match, skipped_count) = self.director.make_guess(self, guess)
+		(match, skipped_count, showing_player) = self.director.make_guess(self, guess)
 		self._log_guess_match(guess, match, skipped_count)
 
 	def _log_guess_match(self, guess, match, skipped_count):
@@ -216,7 +266,9 @@ class Player:
 			self.log_book.log(match.weapon)
 			self.log_book.log(match.room)
 
-	def take_turn(self, action: PlayerAction = None):		
+	# override
+	def take_turn(self, action: PlayerAction = None):
+		#print("NaiveComputerPlayer: " + str(self.character) + " taking turn")
 		action = action if action is not None else self.next_turn_action()
 
 		if action == PlayerAction.ACCUSATION:
@@ -226,7 +278,7 @@ class Player:
 			path = self.use_roll(roll)
 			self.move_path(roll, path)
 		else:
-			self.make_guess()			
+			self.make_guess()
 
 	def next_turn_action(self):
 		if self.log_book.has_solution():
@@ -236,54 +288,6 @@ class Player:
 			return PlayerAction.MOVE
 
 		return PlayerAction.GUESS
-
-	def move_path(self, roll: int, room_path: RoomPath):
-		if roll < room_path.distance:
-			raise Exception("Path is longer than roll")
-
-		#print("Moving " + str(room_path.path))
-
-		for p in room_path.path:
-			if isinstance(p, Space):
-				self.room = None
-				self.position = (p.row, p.col)
-			elif isinstance(p, RoomPosition):
-				self.enter_room(p.room)
-			else:
-				raise Expection("wat?")
-
-			# move animation?
-	
-	def enter_room(self, room: Room):
-		self.room = room
-		self.position = None
-
-	def use_roll(self, roll: int) -> RoomPath:
-		raise Exception('Not Implemented')
-
-	def decide_weapon_guess(self) -> Card:
-		raise Exception('Not Implemented')
-
-	def decide_character_guess(self) -> Card:
-		raise Exception('Not Implemented')
-
-	def should_guess_current_room(self) -> bool:
-		raise Exception('Not Implemented')
-
-	def __repr__(self):
-		return str(self.character.name)
-
-class ComputerPlayer(Player):
-
-	remaining_path: RoomPath
-
-	def __init__(self):
-		super().__init__()	
-		self.remaining_path = None
-
-	def enter_room(self, room):
-		super().enter_room(room)
-		self.remaining_path = None
 
 	def decide_weapon_guess(self) -> Card:
 		if self.log_book.solution.weapon is not None:
@@ -339,8 +343,143 @@ class ComputerPlayer(Player):
 			return RoomPath(room, this_path)
 		else:
 			path = self.remaining_path
-			self.remaining_path = None			
+			self.remaining_path = None
 			return path				
 
 	def __repr__(self):
 		return "Computer Player: " + super().__repr__()
+
+
+class Interaction:
+	pass
+
+class PickMatchTurn(Interaction):
+	match: Solution
+	guess: Solution
+
+	def __init__(self, match: Solution, guess: Solution):
+		self.match = match
+		self.guess = guess
+
+class GuessOutcome(Interaction):
+	match: Solution
+	showing_player: Player
+
+	def __init__(self, match: Solution, showing_player: Player):
+		self.match = match
+		self.showing_player = showing_player
+
+class AccusationOutcome(Interaction):
+	correct: bool
+	solution: Solution
+
+	def __init__(self, correct: bool, solution: Solution):
+		self.correct = correct
+		self.solution = solution
+
+class OpponentGuess(Interaction):
+	opponent: Player
+	guess: Solution
+
+	def __init__(self, opponent: Player, guess: Solution):
+		self.opponent = opponent
+		self.guess = guess
+
+class DealCard(Interaction):
+	cards: List[Card]
+
+	def __init__(self, cards: List[Card]):
+		self.cards = cards
+
+class OpponentWin(Interaction):
+	opponent: Player
+	guess: Solution
+
+	def __init__(self, opponent: Player, guess: Solution):
+		self.opponent = opponent
+		self.guess = guess
+
+class GameOver(Interaction):
+	winner: Player
+	solution: Solution
+
+	def __init__(self, winner: Player, solution: Solution):
+		self.winner = winner
+		self.solution = solution
+
+class HumanPlayer(Player):
+
+	on_turn: Callable[[Interaction]]
+	_turn_lock: Lock
+
+	card_to_show: Solution
+
+	player_action: PlayerAction
+	solution: Solution	
+
+	def __init__(self, turn_lock):
+		self.accusation = None
+		self.guess = None
+		self._turn_lock = turn_lock
+
+	# override
+	def __repr__(self):
+		return "Human Player: " + str(self.character)
+
+	# override
+	def show_card(self, guess: Solution) -> Solution:
+		self.card_to_show = None
+		return super().show_card(guess)
+
+	def pick_card_to_show(self, match: Solution, guess: Solution) -> Solution:
+		self.card_to_show = Solution(None, None, None)
+		self.on_turn(PickMatchTurn(match, guess))
+		return self.card_to_show		
+
+	def set_card_to_show(self, card):
+		if card.type == CardType.ROOM:
+			self.card_to_show.room = card
+		elif card.type == CardType.WEAPON:
+			self.card_to_show.weapon = card
+		elif card.type == CardType.CHARACTER:
+			self.card_to_show.character = card
+
+	def take_turn(self, action: PlayerAction = None):
+		print("HumanPlayer: " + str(self.character) + " taking turn")
+		self.player_action = None
+		self.solution = None
+
+		self.on_turn(Interaction())
+
+		self._wait_for_user()
+
+		if self.player_action == PlayerAction.GUESS:
+			(match, skipped, showing_player) = self.director.make_guess(self, self.solution)
+			self.on_turn(GuessOutcome(match, showing_player))
+			self._wait_for_user()
+
+		elif self.player_action == PlayerAction.ACCUSATION:
+			correct = self.director.make_accusation(self, self.solution)
+			self.on_turn(AccusationOutcome(correct, self.solution))
+			self._wait_for_user()
+
+	def _wait_for_user(self):
+		# wait for other thread to get it. probably not needed
+		while not self._turn_lock.locked():
+			pass
+
+		self._turn_lock.acquire()
+		self._turn_lock.release()
+
+	def accuse(self, solution: Solution):
+		self.player_action = PlayerAction.ACCUSATION
+		self.solution = solution
+
+	def make_guess(self, solution: Solution):
+		self.player_action = PlayerAction.GUESS
+		self.solution = solution		
+	
+	# override
+	def move(self, position):
+		super().move(position)
+		self.player_action = PlayerAction.MOVE

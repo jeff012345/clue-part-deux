@@ -23,12 +23,15 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="requirements.txt" />
+    <Content Include="theme.json" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ai_players.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="astar.py" />
+    <Compile Include="clue_room_tf_env.py" />
+    <Compile Include="clue_tf_cat_dqn.py" />
     <Compile Include="clue_tf_env.py" />
     <Compile Include="clue_tf.py">
       <SubType>Code</SubType>
@@ -37,15 +40,31 @@
     <Compile Include="clue_tf_eval.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="clue_tf_eval_both.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="definitions.py" />
     <Compile Include="game_board.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="game_board_util.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="log_book_ui.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="main.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="panels.py" />
     <Compile Include="paths.py" />
     <Compile Include="player.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="player_roll.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="stat_tracker.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
