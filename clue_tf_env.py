@@ -11,7 +11,7 @@ from ai_players import RLPlayerTrainer, RLPlayer
 from definitions import CardType, Card, Weapon, Character
 from stat_tracker import StatTracker
 
-from threading import Lock, Semaphore
+from threading import Lock, Semaphore, Barrier
 
 from tf_agents.environments import py_environment
 from tf_agents.environments import tf_environment
@@ -204,15 +204,17 @@ class ClueGameEnv(py_environment.PyEnvironment):
 
 class ClueGameEnvImplementation(ClueGameEnv):
 
-    _ai_step_lock: Semaphore
+    _set_guess_barrier: Barrier
+    _next_turn_barrier: Barrier
 
-    def __init__(self, ai_step_lock: Lock, director: Director):
+    def __init__(self, director: Director, set_guess_barrier: Barrier, next_turn_barrier: Barrier):
         super().__init__(director=director)
-        self._ai_step_lock = ai_step_lock
+        
+        self._set_guess_barrier = set_guess_barrier
+        self._next_turn_barrier = next_turn_barrier
 
     # override
-    def _reset(self):
-        # Game Status = ???        
+    def _reset(self):     
         self._stat_tracker = StatTracker(len(self._players))
         self._update_state()
         return ts.restart(self._state)
@@ -220,20 +222,12 @@ class ClueGameEnvImplementation(ClueGameEnv):
     #Overrride
     def _step(self, action):
         self._set_guesses(action)
-        print("weapon guess set: " + str(self._ai_player.weapon_guess))
-        print("character guess set: " + str(self._ai_player.character_guess))
-
-        self._ai_step_lock.release()
-
-        while not self._ai_step_lock.locked():
-            # wait for other thread to get the lock
-            pass
-
-        self._ai_step_lock.acquire()
+        self._set_guess_barrier.wait()
+        
+        self._next_turn_barrier.wait()
         
         # turn is over
         self._update_state()
-        print("guess env state updated")
 
         return ts.transition(self._state, reward=0.0, discount=1.0)
 

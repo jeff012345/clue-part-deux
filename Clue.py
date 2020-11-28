@@ -92,8 +92,8 @@ class Director:
 		self._event_handlers[event].append(func)
 
 	def new_game(self):
-		if self.game_status != GameStatus.STARTING:
-			return
+		if self.game_status != GameStatus.STARTING and self.game_status != GameStatus.ENDED:
+			raise Exception("new game called at the wrong time")
 
 		self.winner = None
 		self.game_status = GameStatus.READY
@@ -137,12 +137,13 @@ class Director:
 		self.game_status = GameStatus.RUNNING
 
 		while not self._end_game() and not end_game_lock.locked():
-			self.active_player.take_turn()
+			#print("Player take turn: " + str(self.active_player))
+			self.active_player.take_turn() 
 			self.next_player()
 
 		self.game_status = GameStatus.ENDED
 
-		if self.winner != None and self.winner != self._human_player:
+		if self.winner != None and self._human_player is not None and self.winner != self._human_player:
 			self._human_player.on_turn(GameOver(self.winner, self.solution))
 			self._wait_for_user()
 
@@ -193,7 +194,7 @@ class Director:
 		self._turn_lock.acquire()
 		self._turn_lock.release()
 
-	def player_take_turn(self, player: Player):
+	def player_take_turn(self, player: Player):		
 		player.take_turn()
 
 		if self._end_game():

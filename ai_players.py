@@ -1,7 +1,7 @@
 from typing import List
 import os
 import time
-from threading import Semaphore, Lock
+from threading import Semaphore, Lock, Barrier
 
 from player import NaiveComputerPlayer
 from definitions import Card, Room, CardType, Character
@@ -22,6 +22,10 @@ class RLPlayer(NaiveComputerPlayer):
 		self.weapon_guess = None
 		self.character_guess = None
 		self.room_guess = None
+
+	# override
+	def __repr__(self):
+		return "RLPlayer: "  + str(self.character)
 
 	def decide_character_guess(self) -> Card:
 		if self.character_guess is None:
@@ -59,6 +63,10 @@ class RLPlayerTrainer(RLPlayer):
 	def _get_unknown_rooms(self) -> List[Room]:
 		return [self.director.solution.room.value]
 
+	# override
+	def __repr__(self):
+		return "RLPlayerTrainer: " + str(self.character)
+
 class RLPlayerRoomTrainer(RLPlayer):
 
 	def decide_character_guess(self) -> Card:
@@ -67,14 +75,22 @@ class RLPlayerRoomTrainer(RLPlayer):
 	def decide_weapon_guess(self) -> Card:
 		return self.director.solution.weapon
 
+	# override
+	def __repr__(self):
+		return "RLPlayerRoomTrainer: " + str(self.character)
+
 
 class DuelAiPlayer(RLPlayer):
 
-	def __init__(self, guess_step_lock: Lock, room_step_lock: Lock):
+	def __init__(self, set_guess_barrier: Barrier, next_turn_barrier: Barrier):
 		super().__init__()
 
-		self._guess_step_lock = guess_step_lock
-		self._room_step_lock = room_step_lock
+		self._set_guess_barrier = set_guess_barrier
+		self._next_turn_barrier = next_turn_barrier
+
+	# override
+	def __repr__(self):
+		return "DuelAiPlayer: " + str(self.character)
 
 	# override
 	def take_turn(self):
@@ -82,33 +98,15 @@ class DuelAiPlayer(RLPlayer):
 			super().take_turn()
 			return
 
-		print("starting ai turn")
+		self._next_turn_barrier.wait()
+		self._next_turn_barrier.reset()
 
-		# starting turn
-		# release to update the guesses
-		self._guess_step_lock.release()
-		self._room_step_lock.release()
-
-		while not self._guess_step_lock.locked() or not self._room_step_lock.locked(): 
-			# wait for other thread to get the lock
-			pass
-
-		print("waiting for guesses to be updated")
-
-		# wait for guesses to be updated
-		self._guess_step_lock.acquire() 
-		self._room_step_lock.acquire()
-
-		print("ai taking turn")
+		self._set_guess_barrier.wait()
 
 		super().take_turn()
 
-		print("ai turn done")
 
 
-	# overrride
-	#def make_guess(self):
-		
-		#super().make_guess()
+
 
 		

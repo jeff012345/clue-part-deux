@@ -423,6 +423,10 @@ class HumanPlayer(Player):
 		self._turn_lock = turn_lock
 
 	# override
+	def __repr__(self):
+		return "Human Player: " + str(self.character)
+
+	# override
 	def show_card(self, guess: Solution) -> Solution:
 		self.card_to_show = None
 		return super().show_card(guess)
