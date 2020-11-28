@@ -15,7 +15,6 @@ eval_tf_env = tf_py_environment.TFPyEnvironment(eval_py_env)
 policy_dir = os.path.join("models_no_delete", "reinforce-2", "policy")
 saved_policy = tf.compat.v2.saved_model.load(policy_dir)
 
-
 num_episodes = 1000
 wins = 0
 
