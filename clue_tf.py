@@ -29,8 +29,12 @@ from tf_agents.utils import common
 from clue_tf_env import ClueGameEnv
 from clue_room_tf_env import ClueGameRoomEnv
 from ai_players import RLPlayer
+from paths import Board
 
 tf.compat.v1.enable_v2_behavior()
+
+## cache this data
+Board.calculate_room_distances()
 
 ## utility functions
 def compute_avg_return(environment, policy, num_episodes=10):
@@ -101,12 +105,8 @@ fc_layer_params = (1000,)
 ## environment setup
 ##
 
-#env_name = 'CartPole-v0'
-#train_py_env = suite_gym.load(env_name)
-#eval_py_env = suite_gym.load(env_name)
-
-train_py_env = ClueGameRoomEnv() #ClueGameEnv()
-eval_py_env = ClueGameRoomEnv() #ClueGameEnv()
+train_py_env = ClueGameEnv()
+eval_py_env = ClueGameEnv()
 
 train_env = tf_py_environment.TFPyEnvironment(train_py_env)
 eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)

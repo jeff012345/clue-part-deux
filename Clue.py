@@ -93,7 +93,7 @@ class Director:
 
 	def new_game(self):
 		if self.game_status != GameStatus.STARTING and self.game_status != GameStatus.ENDED:
-			raise Exception("new game called at the wrong time")
+			raise Exception("new game called at the wrong time: Status = " + str(self.game_status))
 
 		self.winner = None
 		self.game_status = GameStatus.READY

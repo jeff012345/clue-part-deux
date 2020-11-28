@@ -103,19 +103,14 @@ n_step_update = 2  # @param {type:"integer"}
 num_eval_episodes = 25 # @param {type:"integer"}
 eval_interval = 250 # @param {type:"integer"}
 
-
 fc_layer_params = (1000,)
 
 ##
 ## environment setup
 ##
 
-#env_name = 'CartPole-v0'
-#train_py_env = suite_gym.load(env_name)
-#eval_py_env = suite_gym.load(env_name)
-
-train_py_env = ClueGameRoomEnv() #ClueGameEnv()
-eval_py_env = ClueGameRoomEnv() #ClueGameEnv()
+train_py_env = ClueGameRoomEnv()
+eval_py_env = ClueGameRoomEnv()
 
 train_env = tf_py_environment.TFPyEnvironment(train_py_env)
 eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
@@ -128,7 +123,6 @@ categorical_q_net = categorical_q_network.CategoricalQNetwork(
     train_env.action_spec(),
     num_atoms=num_atoms,
     fc_layer_params=fc_layer_params)
-
 
 ##
 ## Setup Agent

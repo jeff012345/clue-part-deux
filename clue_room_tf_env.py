@@ -100,6 +100,8 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
         self._episode_ended = False
         self._stat_tracker = RoomTracker(len(self._players))
 
+        self._clue.game_status = GameStatus.STARTING
+
         self._clue.new_game()
         self._update_state()
 
@@ -113,7 +115,7 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
             self._stat_tracker.stat_array(), \
             self._room_distances()
         )
-        self._state = np.concatenate(arrs, axis=None)#.astype(np.float64)
+        self._state = np.concatenate(arrs, axis=None)
 
     def _room_distances(self) -> List[np.float64]:
         p = self._ai_player.position
@@ -130,23 +132,30 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
             # a new episode.
             return self.reset()               
 
+        if self.current_time_step().is_first():
+            # take turns until the AI player needs take its turn
+            self._clue.take_turns_until_player(self._ai_player)
+        
+            if self._clue.game_status == GameStatus.ENDED:
+                # someone won, terminate
+                self._episode_ended = True
+                return ts.termination(self._state, self._calc_reward())
+        
+        # take agent turn
+        self._turn(action)
+
         # take turns until the AI player needs take its turn
         self._clue.take_turns_until_player(self._ai_player)
-        
+
         if self._clue.game_status == GameStatus.ENDED:
             # someone won, terminate
             self._episode_ended = True
             return ts.termination(self._state, self._calc_reward())
-        
-        #self._guess(action)
-        self._turn(action)
 
-        #TODO this state doesn't update after an action
         self._update_state()
 
         if self._clue.game_status == GameStatus.ENDED or self._tries == self._max_tries:
             # AI player won
-            #print("AI Player Won!")
             self._episode_ended = True
             return ts.termination(self._state, self._calc_reward())
 
@@ -154,9 +163,6 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
 
     # max reward = -1 * num_of_cards
     def _calc_reward(self) -> int:
-        #if self._tries == self._max_tries:
-        #    return -90
-
         if self._clue.winner == self._ai_player:
             # the AI won
             return 0
@@ -172,13 +178,6 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
             
         ## AI player lost the game, make this worse
         #return -1 * self._max_tries
-
-        #if self._clue.winner == self._ai_player:
-        #    # AI player won
-        #    return 1
-
-        #eliminated = np.sum(self._ai_player.log_book.rooms)
-        #return eliminated / self._tries
 
     def _set_room(self, action):        
         self._ai_player.room_guess = Card(Room(action + 1), CardType.ROOM)

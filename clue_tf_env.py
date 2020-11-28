@@ -102,6 +102,8 @@ class ClueGameEnv(py_environment.PyEnvironment):
         self._episode_ended = False
         self._stat_tracker = StatTracker(len(self._players))
 
+        self._clue.game_status = GameStatus.STARTING
+
         self._clue.new_game()
         self._update_state()
 
@@ -123,6 +125,17 @@ class ClueGameEnv(py_environment.PyEnvironment):
             # a new episode.
             return self.reset()               
 
+        if self.current_time_step().is_first():
+            # take turns until the AI player needs to guess
+            self._take_turns_until_guess()
+        
+            if self._clue.game_status == GameStatus.ENDED:
+                # someone won, terminate
+                self._episode_ended = True            
+                return ts.termination(self._state, self._calc_reward())
+        
+        self._guess(action)
+
         # take turns until the AI player needs to guess
         self._take_turns_until_guess()
         
@@ -130,8 +143,6 @@ class ClueGameEnv(py_environment.PyEnvironment):
             # someone won, terminate
             self._episode_ended = True            
             return ts.termination(self._state, self._calc_reward())
-        
-        self._guess(action)
 
         self._update_state()
 
@@ -143,21 +154,23 @@ class ClueGameEnv(py_environment.PyEnvironment):
     # max reward = -1 * num_of_cards
     def _calc_reward(self) -> int:
         # newer
-        #if self._clue.winner == self._ai_player:
-        #    return 0
-        
-        ##better if you find them in fewer turns. Points per turn per card?
-        #log_book = self._ai_player.log_book
-        #reward = (np.sum(log_book.weapons) + np.sum(log_book.characters)) - 12
-        #return int(reward) * 10
+        if self._clue.winner == self._ai_player:
+            # the AI won
+            return 0
+
+        in_hand = len(self._ai_player.hand.characters) + len(self._ai_player.hand.weapons)
+        found = np.sum(self._ai_player.log_book.characters) + np.sum(self._ai_player.log_book.weapons)
+        # percentage of found unknowns
+        reward = ((found - in_hand) / (12 - in_hand)) - 1
+        return int(reward) * 100
 
         # original
-        if self._clue.winner == self._ai_player:
-            # AI player won
-            return -1 * self._tries
+        #if self._clue.winner == self._ai_player:
+        #    # AI player won
+        #    return -1 * self._tries
             
-        # AI player lost the game, make this worse
-        return -2 * self._max_tries
+        ## AI player lost the game, make this worse
+        #return -2 * self._max_tries
 
     def _take_turns_until_guess(self):
         player_action = None
@@ -167,7 +180,6 @@ class ClueGameEnv(py_environment.PyEnvironment):
 
             if self._clue.game_status == GameStatus.ENDED:
                 # another player has won
-                #print("another player won")
                 break
 
             player_action = self._ai_player.next_turn_action()
@@ -181,7 +193,6 @@ class ClueGameEnv(py_environment.PyEnvironment):
 
             if self._clue.game_status == GameStatus.ENDED:
                 # AI player won
-                #print("AI player won")
                 break    
 
     def _guess(self, action):
