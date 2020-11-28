@@ -11,7 +11,7 @@ from paths import Board
 
 ## Model Config
 room_policy_dir = os.path.join("models_no_delete", "room", "cat dqn-1 more", "policy")
-guess_policy_dir = policy_dir = os.path.join("models_no_delete", "best_guess_policy")
+guess_policy_dir = os.path.join("models_no_delete", "best_guess_policy")
 
 ## setup
 new_game_barrier = threading.Barrier(3)
@@ -70,7 +70,7 @@ def load_guess_env():
 
     return (eval_tf_env, saved_policy)
 
-# runs the UI game board
+# THREAD: runs the UI game board
 def run_board():    
     try:        
         game_board.run(director, run_game_lock, end_game_lock, human_player, interaction_lock)
@@ -80,7 +80,7 @@ def run_board():
         traceback.print_tb(err.__traceback__)
         raise err
 
-# runs the game director and TF agent
+# THREAD: runs the game director
 def run_game():
     try:
         Board.calculate_room_distances()
@@ -118,6 +118,7 @@ def run_game():
         traceback.print_tb(err.__traceback__)
         raise err
 
+# THREAD: runs the weapon and character guess TF environment
 def run_guess_ai():
     try:
         (guess_env, guess_policy) = load_guess_env()
@@ -149,6 +150,7 @@ def run_guess_ai():
         traceback.print_tb(err.__traceback__)
         raise err
 
+# THREAD: runs the room guess TF environment
 def run_room_ai():
     try:
         (room_env, room_policy) = load_room_env()
