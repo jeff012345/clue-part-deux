@@ -4,6 +4,7 @@ import pygame
 import pygame_gui
 
 from player import *
+from definitions import Room
 from ai_players import RLPlayer
 from Clue import Director, GameStatus
 from threading import Lock, Condition, Barrier
@@ -53,6 +54,8 @@ def run(director: Director, run_game_lock: Lock, end_game_lock: Lock, human: Hum
     match_pick_panel = MatchPickPanel(manager, display_width, display_height, human, on_end_turn)
 
     human.on_turn = lambda turn: on_player_turn(manager, turn, turn_lock, start_turn_menu, match_pick_panel, on_end_turn)
+
+    cnt = 180
 
     started = False
     while end_game_lock.locked() is False and not started:

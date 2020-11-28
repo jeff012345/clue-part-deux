@@ -21,57 +21,66 @@ class StartTurnPanel:
     panel: UIPanel
     player_roll: PlayerRoll
     guess_panel: GuessPanel
-    
+    manager: UIManager
+
     _roll_button: UIButton
     _guess_button: UIButton
     _accuse_button: UIButton
 
+    _guess_rect: pygame.Rect
+
     def __init__(self, manager: UIManager, screen_width: int, screen_height: int, player_roll: PlayerRoll, \
             guess_panel: GuessPanel, player: HumanPlayer):
-
-         self._create_panel(manager, screen_width, screen_height)
-         self.player_roll = player_roll
-         self.guess_panel = guess_panel
-         self.player = player
+        
+        self.manager = manager
+        self._create_panel(screen_width, screen_height)
+        self.player_roll = player_roll
+        self.guess_panel = guess_panel
+        self.player = player
    
-    def _create_panel(self, manager: UIManager, screen_width: int, screen_height: int):
+    def _create_panel(self, screen_width: int, screen_height: int):
         self.width = 300
         self.height = 275
 
         rect = create_modal_rect(screen_width, screen_height, self.width, self.height)
-        self.panel = UIPanel(rect, 0, manager, element_id='start_turn')
+        self.panel = UIPanel(rect, 0, self.manager, element_id='start_turn')
 
         UILabel(pygame.Rect((0, 10), (self.width, 20)), 
                 "Your Turn", 
-                manager, 
+                self.manager, 
                 container=self.panel,
                 object_id="windowTitle")
 
         y_offset = 10 + 10
 
         roll_button_rect = pygame.Rect((50, y_offset + 25), (200, 50))
-        self._roll_button = UIButton(roll_button_rect, 'Roll', manager, container=self.panel)
+        self._roll_button = UIButton(roll_button_rect, 'Roll', self.manager, container=self.panel)
+
+        y_offset += 25 + 50
+
+        self._guess_rect = pygame.Rect((50, y_offset + 25), (200, 50))
+        self._make_guess_button()
 
         y_offset += 25 + 50
 
         rect = pygame.Rect((50, y_offset + 25), (200, 50))
-        self._guess_button = UIButton(rect, 'Guess', manager, container=self.panel)
-
-        y_offset += 25 + 50
-
-        rect = pygame.Rect((50, y_offset + 25), (200, 50))
-        self._accuse_button = UIButton(rect, 'Accuse', manager, container=self.panel)
+        self._accuse_button = UIButton(rect, 'Accuse', self.manager, container=self.panel)
 
         self.hide()
 
     def show(self):
+        self._guess_button.kill()
+        self._make_guess_button()
+
         if self.player.room is None:
             self._guess_button.disable()
         else:
             self._guess_button.enable()
-        self._guess_button.rebuild()
 
         self.panel.show()
+
+    def _make_guess_button(self):
+        self._guess_button = UIButton(self._guess_rect.copy(), 'Guess', self.manager, container=self.panel)
 
     def hide(self):
         self.panel.hide()
@@ -107,14 +116,21 @@ class MatchPickPanel:
     player: HumanPlayer
     pick: Card
     on_end_turn: Callable
+    manager: UIManager
     
     _weapon_button: UIButton
     _character_button: UIButton
     _room_button: UIButton
     _solution: Solution
 
+    _weapon_button_rect: pygame.Rect
+    _character_button_rect: pygame.Rect
+    _room_button_rect: pygame.Rect
+
     def __init__(self, manager: UIManager, screen_width: int, screen_height: int, player: HumanPlayer, \
             on_end_turn: Callable):
+
+        self.manager = manager
         self.player = player
         self.on_end_turn = on_end_turn
         self._create_panel(manager, screen_width, screen_height)
@@ -133,29 +149,46 @@ class MatchPickPanel:
 
         y_offset = 10 + 10
 
-        button_rect = pygame.Rect((50, y_offset + 25), (200, 50))
-        self._weapon_button = UIButton(button_rect, '', manager, container=self.panel)
+        self._weapon_button_rect = pygame.Rect((50, y_offset + 25), (200, 50))        
+        self._make_weapon_button('')
 
         y_offset += 25 + 50
 
-        button_rect = pygame.Rect((50, y_offset + 25), (200, 50))
-        self._character_button = UIButton(button_rect, '', manager, container=self.panel)
+        self._character_button_rect = pygame.Rect((50, y_offset + 25), (200, 50))
+        self._make_character_button('')
 
         y_offset += 25 + 50
 
-        button_rect = pygame.Rect((50, y_offset + 25), (200, 50))
-        self._room_button = UIButton(button_rect, '', manager, container=self.panel)
+        self._room_button_rect = pygame.Rect((50, y_offset + 25), (200, 50))
+        self._make_room_button('')
 
         self.panel.hide()
+
+    def _make_weapon_button(self, text):
+        self._weapon_button = UIButton(self._weapon_button_rect.copy(), text, self.manager, container=self.panel)
+
+    def _make_character_button(self, text):
+        self._character_button = UIButton(self._character_button_rect.copy(), text, self.manager, container=self.panel)
+
+    def _make_room_button(self, text):
+        self._room_button = UIButton(self._room_button_rect.copy(), text, self.manager, container=self.panel)
 
     def show(self, turn_data: PickMatchTurn):
         solution = turn_data.match
         self._solution = solution
 
+        self._weapon_button.kill()
+        self._character_button.kill()
+        self._room_button.kill()
+
+        self._make_weapon_button(str(turn_data.guess.weapon))
+        self._make_character_button(str(turn_data.guess.character))
+        self._make_room_button(str(turn_data.guess.room))
+
         if solution.weapon is None:            
             self._weapon_button.disable()
         else:
-            self._weapon_button.enable()            
+            self._weapon_button.enable()
 
         if solution.character is None:            
             self._character_button.disable()
@@ -165,11 +198,7 @@ class MatchPickPanel:
         if solution.room is None:            
             self._room_button.disable()
         else:
-            self._room_button.enable()
-
-        self._weapon_button.set_text(str(turn_data.guess.weapon))
-        self._character_button.set_text(str(turn_data.guess.character))
-        self._room_button.set_text(str(turn_data.guess.room))
+            self._room_button.enable()        
 
         self.panel.show()
 
