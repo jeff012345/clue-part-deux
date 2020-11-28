@@ -90,8 +90,8 @@ def collect_episode(environment, policy, num_episodes):
 ##
 ## Hyperparameters
 ##
-num_iterations = 25 # @param {type:"integer"}
-collect_episodes_per_iteration = 15 # @param {type:"integer"}
+num_iterations = 5000 # @param {type:"integer"}
+collect_episodes_per_iteration = 10 # @param {type:"integer"}
 replay_buffer_capacity = 15000 # @param {type:"integer"}
 
 learning_rate = 1e-3 # @param {type:"number"}
