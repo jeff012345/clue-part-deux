@@ -104,8 +104,8 @@ def run_game():
         if not end_game_lock.locked():
             end_game_lock.acquire()
 
-        # signal env threads to cycle while loop and check end_game_lock
-        next_turn_barrier.wait()
+        # signal env threads to quit
+        next_turn_barrier.abort()
 
     except Exception as err:
         if not end_game_lock.locked():

@@ -136,8 +136,7 @@ class Director:
 
 		self.game_status = GameStatus.RUNNING
 
-		while not self._end_game() and not end_game_lock.locked():
-			#print("Player take turn: " + str(self.active_player))
+		while not self._end_game():
 			self.active_player.take_turn() 
 			self.next_player()
 
@@ -330,7 +329,8 @@ class Director:
 	
 	def _end_game(self):
 		## no winner and at least 2 players
-		return self.winner is not None or len(self.players) == 1 or self.end_game_lock.locked() is True
+		return self.game_status == GameStatus.ENDED or self.winner is not None \
+		   or len(self.players) == 1 or self.end_game_lock.locked() is True
 
 def new_game(director: Director):
 	director.new_game();

@@ -55,8 +55,6 @@ def run(director: Director, run_game_lock: Lock, end_game_lock: Lock, human: Hum
 
     human.on_turn = lambda turn: on_player_turn(manager, turn, turn_lock, start_turn_menu, match_pick_panel, on_end_turn)
 
-    cnt = 180
-
     started = False
     while end_game_lock.locked() is False and not started:
         time_delta = clock.tick(60) / 1000.0
