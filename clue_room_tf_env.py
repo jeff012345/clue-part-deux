@@ -51,7 +51,8 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
         # knowns  = 9
         # card stats = 9 * 2
         # room_distance = 9
-        obv_cnt = self._num_of_cards * 2 + self._num_of_cards * CardStat.COUNT
+        # opponent room locations
+        obv_cnt = self._num_of_cards * 2 + self._num_of_cards * CardStat.COUNT + 5
         self._observation_spec = array_spec.BoundedArraySpec(shape=(obv_cnt,), 
                                                              dtype=np.float64, 
                                                              minimum=0, 
@@ -113,7 +114,8 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
         arrs = (
             self._ai_player.log_book.rooms, \
             self._stat_tracker.stat_array(), \
-            self._room_distances()
+            self._room_distances(), \
+            self._player_locations()
         )
         self._state = np.concatenate(arrs, axis=None)
 
@@ -125,6 +127,19 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
             p = Board.get(p[0], p[1])
 
         return Board.ROOM_DISTANCES[p]
+
+    def _player_locations(self) -> List[np.float64]:
+        locations = np.zeros((5,), dtype=np.float64)
+
+        i = 0
+        for p in self._players:
+            if p == self._ai_player:
+                continue
+
+            if p.room is not None:
+                locations[i] = p.float64(p.room.value)
+
+            i += 1
 
     def _step(self, action):
         if self._episode_ended:
