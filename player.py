@@ -75,9 +75,17 @@ class LogBook:
 
 	solution: Solution
 
+	weapons_found: int
+	characters_found: int
+	rooms_found: int
+
 	def __init__(self):
 		self.log_book = dict()
 		self.solution = Solution(None, None, None)
+
+		self.weapons_found = 0
+		self.characters_found = 0
+		self.rooms_found = 0
 
 		self.weapons = np.zeros((6,), dtype=np.float64)
 		self.characters = np.zeros((6,), dtype=np.float64)
@@ -87,9 +95,9 @@ class LogBook:
 			self.log_book[card] = False
 
 	def log(self, card: Card):
-		if card is None:
+		if card is None or self.log_book[card] is True:
 			return
-
+		
 		self.log_book[card] = True
 		self.find_solution(card.type)
 
@@ -97,10 +105,13 @@ class LogBook:
 
 		if card.type == CardType.WEAPON:
 			self.weapons[index] = 1
+			self.weapons_found += 1
 		elif card.type == CardType.CHARACTER:
 			self.characters[index] = 1
+			self.characters_found += 1
 		else:
 			self.rooms[index] = 1
+			self.rooms_found += 1
 
 	## maybe store these as list so we don't need to loop every time
 	def get(self, card_type: CardType, known: bool) -> List[Card]:
