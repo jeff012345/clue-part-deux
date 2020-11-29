@@ -34,7 +34,8 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
     _players: List[Player]
     _clue: Director
     _ai_player: RLPlayer
-    _stat_tracker: RoomTracker   
+    _stat_tracker: RoomTracker
+    _opponent_locations: List[np.float64]
 
     def __init__(self, eval = False, director = None):
         self._num_of_cards = 9
@@ -100,6 +101,7 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
         self._tries = 0
         self._episode_ended = False
         self._stat_tracker = RoomTracker(len(self._players))
+        self._opponent_locations = np.zeros((5,), dtype=np.float64)
 
         self._clue.game_status = GameStatus.STARTING
 
@@ -129,17 +131,19 @@ class ClueGameRoomEnv(py_environment.PyEnvironment):
         return Board.ROOM_DISTANCES[p]
 
     def _player_locations(self) -> List[np.float64]:
-        locations = np.zeros((5,), dtype=np.float64)
-
         i = 0
         for p in self._players:
             if p == self._ai_player:
                 continue
 
             if p.room is not None:
-                locations[i] = p.float64(p.room.value)
+                self._opponent_locations[i] = np.float64(p.room.value)
+            else:
+                self._opponent_locations[i] = 0
 
             i += 1
+            
+        return self._opponent_locations
 
     def _step(self, action):
         if self._episode_ended:
