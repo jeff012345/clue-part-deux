@@ -10,8 +10,8 @@ from ai_players import RLPlayer, DuelAiPlayer
 from paths import Board
 
 ## Model Config
-room_policy_dir = os.path.join("models_no_delete", "room", "cat dqn-1 more", "policy")
-guess_policy_dir = os.path.join("models_no_delete", "best_guess_policy")
+room_policy_dir = os.path.join("best_policies", "room")
+guess_policy_dir = os.path.join("best_policies", "character_weapon")
 
 ## setup
 new_game_barrier = threading.Barrier(3)
