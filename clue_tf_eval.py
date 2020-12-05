@@ -16,7 +16,8 @@ eval_py_env = ClueGameEnv(eval = True)
 eval_tf_env = tf_py_environment.TFPyEnvironment(eval_py_env)
 
 #policy_dir = os.path.join("models_no_delete", "reinforce-5", "policy")
-policy_dir = os.path.join("models_no_delete", "best_guess_policy")
+#policy_dir = os.path.join("models_no_delete", "best_guess_policy")
+policy_dir = os.path.join("policy")
 saved_policy = tf.compat.v2.saved_model.load(policy_dir)
 
 num_episodes = 500

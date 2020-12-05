@@ -154,13 +154,18 @@ class ClueGameEnv(py_environment.PyEnvironment):
     # max reward = -1 * num_of_cards
     def _calc_reward(self) -> int:
         # newer
-        if self._clue.winner == self._ai_player:
+        #if self._clue.winner == self._ai_player:
             # the AI won
-            return 0
+        #    return 0
 
+        if self._clue.winner != self._ai_player:
+            return -100
+              
         in_hand = len(self._ai_player.hand.characters) + len(self._ai_player.hand.weapons)
-        found = np.sum(self._ai_player.log_book.characters) + np.sum(self._ai_player.log_book.weapons)
-        # percentage of found unknowns
+        found = self._ai_player.log_book.weapons_found + self._ai_player.log_book.characters_found
+        #found = np.sum(self._ai_player.log_book.characters) + np.sum(self._ai_player.log_book.weapons)  
+
+        ## percentage of found unknowns
         reward = ((found - in_hand) / (12 - in_hand)) - 1
         return int(reward) * 100
 

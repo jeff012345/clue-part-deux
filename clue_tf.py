@@ -90,13 +90,14 @@ def collect_episode(environment, policy, num_episodes):
 ##
 ## Hyperparameters
 ##
-num_iterations = 5000 # @param {type:"integer"}
-collect_episodes_per_iteration = 10 # @param {type:"integer"}
-replay_buffer_capacity = 15000 # @param {type:"integer"}
+num_iterations = 10000 # @param {type:"integer"}
+collect_episodes_per_iteration = 20 # @param {type:"integer"}
+replay_buffer_capacity = 100000 # @param {type:"integer"}
 
+#learning_rate = 1e-3 # @param {type:"number"}
 learning_rate = 1e-3 # @param {type:"number"}
 log_interval = 25 # @param {type:"integer"}
-num_eval_episodes = 25 # @param {type:"integer"}
+num_eval_episodes = 50 # @param {type:"integer"}
 eval_interval = 200 # @param {type:"integer"}
 
 fc_layer_params = (1000,)
@@ -196,7 +197,7 @@ for _ in range(num_iterations):
         avg_return = compute_avg_return(eval_env, agent.policy, num_eval_episodes)
         print('step = {0}: Average Return = {1}'.format(step, avg_return))
         returns.append(avg_return)
-
+        
         # checkpoint saved
         train_checkpointer.save(train_step_counter)
 
@@ -212,3 +213,5 @@ plt.show()
 policy_dir = os.path.join(".", 'policy')
 tf_policy_saver = policy_saver.PolicySaver(agent.policy)
 tf_policy_saver.save(policy_dir)
+
+print(str(returns))

@@ -29,8 +29,12 @@ from tf_agents.utils import common
 from clue_tf_env import ClueGameEnv
 from clue_room_tf_env import ClueGameRoomEnv
 from ai_players import RLPlayer
+from paths import Board
 
 tf.compat.v1.enable_v2_behavior()
+
+## cache this data
+Board.calculate_room_distances()
 
 ## utility functions
 def compute_avg_return(environment, policy, num_episodes=10):
@@ -86,31 +90,33 @@ def collect_episode(environment, policy, num_episodes):
 ##
 ## Hyperparameters
 ##
-num_iterations = 5000 # @param {type:"integer"}
-collect_episodes_per_iteration = 10 # @param {type:"integer"}
+num_iterations = 10000 # @param {type:"integer"}
+collect_episodes_per_iteration = 20 # @param {type:"integer"}
 replay_buffer_capacity = 100000 # @param {type:"integer"}
 
 batch_size = 64  # @param {type:"integer"}
+#learning_rate = 1e-3  # @param {type:"number"}
 learning_rate = 1e-3  # @param {type:"number"}
 gamma = 0.99
 log_interval = 25  # @param {type:"integer"}
 
+#num_atoms = 51  # @param {type:"integer"}
 num_atoms = 51  # @param {type:"integer"}
 min_q_value = -100  # @param {type:"integer"}
 max_q_value = 0  # @param {type:"integer"}
-n_step_update = 2  # @param {type:"integer"}
+n_step_update = 3  # @param {type:"integer"}
 
 num_eval_episodes = 25 # @param {type:"integer"}
 eval_interval = 250 # @param {type:"integer"}
 
-fc_layer_params = (1000,)
+fc_layer_params = (1000,1500,1000)
 
 ##
 ## environment setup
 ##
 
-train_py_env = ClueGameRoomEnv()
-eval_py_env = ClueGameRoomEnv()
+train_py_env = ClueGameEnv() #ClueGameRoomEnv()
+eval_py_env = ClueGameEnv() #ClueGameRoomEnv()
 
 train_env = tf_py_environment.TFPyEnvironment(train_py_env)
 eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
