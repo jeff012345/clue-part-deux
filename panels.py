@@ -387,7 +387,7 @@ class EndTurnWindow(pygame_gui.windows.UIMessageWindow):
         super().process_event(event)
 
         if event.type == pygame.USEREVENT and event.user_type == pygame_gui.UI_BUTTON_PRESSED \
-                and event.ui_object_id == '#end_turn_window.#dismiss_button':
+                and (event.ui_object_id == '#end_turn_window.#dismiss_button' or event.ui_object_id == '#end_turn_window.#close_button'):
             self.on_end_turn()
             self.kill()
         
