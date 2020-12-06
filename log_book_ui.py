@@ -65,7 +65,7 @@ class LogBookPanel:
             checkbox_img = UIImage(img_rect, LogBookPanel.UNCHECKED_IMG, self.manager, container=self.panel)
 
             label_rect = pygame.Rect((30, y_offset), (item_label_width, item_height))
-            item_button = UITextBox(item.name, label_rect, self.manager, container=self.panel)
+            item_button = UITextBox(item.pretty(), label_rect, self.manager, container=self.panel)
 
             self._checkboxes[checkbox_img] = False
 

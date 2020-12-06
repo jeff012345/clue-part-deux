@@ -174,7 +174,7 @@ def on_player_turn(manager, turn_data: HumanTurn, lock: Lock, start_turn_menu: S
         message += "<br><strong>Solution:</strong> " + str(turn_data.solution)
 
         if isinstance(turn_data.winner, RLPlayer):
-            message += "Winner was the AI"
+            message += "<br>Winner was the AI"
 
         rect = create_modal_rect(display_width, display_height, 400, 200)
         EndTurnWindow(rect, manager, on_end_turn, "Game Over", message)
